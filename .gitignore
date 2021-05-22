@@ -1,2 +1,7 @@
 .vs/
 out/
+.idea/
+cmake-build-debug/
+gen/
+test_src/
+.antlr/

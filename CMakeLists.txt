@@ -21,21 +21,26 @@ set(ANTLR_EXECUTABLE ${CMAKE_SOURCE_DIR}/antlr/antlr-4.9.2-complete.jar)
 # add macros to generate ANTLR Cpp code from grammar
 find_package(ANTLR REQUIRED)
 
-antlr_target(SampleGrammarLexer ${CMAKE_SOURCE_DIR}/grammar/TLexer.g4 LEXER
-             PACKAGE antlrcpptest)
-antlr_target(SampleGrammarParser ${CMAKE_SOURCE_DIR}/grammar/TParser.g4 PARSER
-             PACKAGE antlrcpptest
-             DEPENDS_ANTLR SampleGrammarLexer
-             COMPILE_FLAGS -lib ${ANTLR_SampleGrammarLexer_OUTPUT_DIR})
+antlr_target(CParser ${CMAKE_SOURCE_DIR}/grammar/C.g4 LEXER PARSER
+        PACKAGE c_grammar
+        VISITOR)
+
+antlr_target(TinyCParser ${CMAKE_SOURCE_DIR}/grammar/TinyC.g4 LEXER PARSER
+        PACKAGE tinyc_grammar
+        VISITOR)
 
 # include generated files in project environment
-include_directories(${ANTLR_SampleGrammarLexer_OUTPUT_DIR})
-include_directories(${ANTLR_SampleGrammarParser_OUTPUT_DIR})
+include_directories(${ANTLR_CParser_OUTPUT_DIR})
+include_directories(${ANTLR_TinyCParser_OUTPUT_DIR})
 
 # add generated grammar to demo binary target
-add_executable(${PROJECT_NAME} main.cpp
-               ${ANTLR_SampleGrammarLexer_CXX_OUTPUTS}
-               ${ANTLR_SampleGrammarParser_CXX_OUTPUTS}
-               )
+add_executable(${PROJECT_NAME} mycc.cpp
+        ${ANTLR_CParser_CXX_OUTPUTS}
+        )
 
-target_link_libraries(${PROJECT_NAME} antlr4_static)
+add_executable(tinycc tinycc.cpp
+        ${ANTLR_TinyCParser_CXX_OUTPUTS}
+        )
+
+target_link_libraries(${PROJECT_NAME} PUBLIC antlr4_static)
+target_link_libraries(tinycc PUBLIC antlr4_static)
