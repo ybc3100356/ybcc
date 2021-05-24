@@ -2,6 +2,7 @@
 cmake_minimum_required(VERSION 3.7)
 
 project(mycc)
+set(TEST_EXAMPLE tinycc)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
@@ -38,9 +39,9 @@ add_executable(${PROJECT_NAME} mycc.cpp
         ${ANTLR_CParser_CXX_OUTPUTS}
         )
 
-add_executable(tinycc tinycc.cpp
+add_executable(${TEST_EXAMPLE} tinycc.cpp
         ${ANTLR_TinyCParser_CXX_OUTPUTS}
         )
 
-target_link_libraries(${PROJECT_NAME} PUBLIC antlr4_static)
-target_link_libraries(tinycc PUBLIC antlr4_static)
+target_link_libraries(${PROJECT_NAME} antlr4_static)
+target_link_libraries(${TEST_EXAMPLE} antlr4_static)

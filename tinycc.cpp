@@ -30,7 +30,7 @@ public:
     }
 
     antlrcpp::Any visitLiteral(TinyCParser::LiteralContext *ctx) override {
-        return atof(ctx->NUMBER()->getText().c_str());
+        return std::strtod(ctx->NUMBER()->getText().c_str(), nullptr);
     }
 
     antlrcpp::Any visitId(TinyCParser::IdContext *ctx) override {
@@ -63,6 +63,7 @@ public:
 };
 
 int main(int argc, const char *argv[]) {
+
     std::ifstream src_file_stream("../test_src/hello.tc");
     ANTLRInputStream input(src_file_stream);
     TinyCLexer lexer(&input);
