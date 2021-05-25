@@ -37,8 +37,8 @@ unaryExpression
 unaryOperator
     :   '&' | '*' | '+' | '-' | '~' | '!'
     ;
-
 castExpression
+
     :   '(' typeName ')' castExpression
     |   unaryExpression
     |   DigitSequence // for
@@ -112,19 +112,19 @@ declaration
     ;
 
 declarationSpecifiers
-    :   typedefSpecifier? declarationSpecifier+
+    :   typedefSpecifier? declarationSpecifierList
     ;
 
-//declarationSpecifiers2
-//    :   declarationSpecifier+
-//    ;
+declarationSpecifierList
+    :   declarationSpecifier+
+    ;
 
 declarationSpecifier
     :   storageClassSpecifier
     |   typeSpecifier
     |   typeQualifier
     |   functionSpecifier
-    |   alignmentSpecifier
+//    |   alignmentSpecifier
     ;
 
 initDeclaratorList
@@ -136,7 +136,7 @@ initDeclarator
     ;
 
 typedefSpecifier
-    :'typedef'
+    :   'typedef'
     ;
 
 storageClassSpecifier
@@ -147,7 +147,16 @@ storageClassSpecifier
     ;
 
 typeSpecifier
-    :   ('void'
+    :   simpleTypeSpecifier
+    |   structOrUnionSpecifier
+    |   enumSpecifier
+    |   typedefName
+//    |   '__typeof__' '(' constantExpression ')' // GCC extension
+    |   typeSpecifier pointer
+    ;
+
+simpleTypeSpecifier
+    :   'void'
     |   'char'
     |   'short'
     |   'int'
@@ -156,12 +165,7 @@ typeSpecifier
     |   'double'
     |   'signed'
     |   'unsigned'
-    |   '_Bool')
-    |   structOrUnionSpecifier
-    |   enumSpecifier
-    |   typedefName
-    |   '__typeof__' '(' constantExpression ')' // GCC extension
-    |   typeSpecifier pointer
+    |   '_Bool'
     ;
 
 structOrUnionSpecifier
@@ -220,13 +224,13 @@ typeQualifier
     ;
 
 functionSpecifier
-    :   ('inline'
-    |   '_Noreturn')
+    :   'inline'
+    |   '_Noreturn'
     ;
 
-alignmentSpecifier
-    :   '_Alignas' '(' (typeName | constantExpression) ')'
-    ;
+//alignmentSpecifier
+//    :   '_Alignas' '(' (typeName | constantExpression) ')'
+//    ;
 
 declarator
     :   pointer? directDeclarator
@@ -241,7 +245,7 @@ directDeclarator
     |   directDeclarator '[' typeQualifierList? '*' ']'
     |   directDeclarator '(' parameterTypeList ')'
     |   directDeclarator '(' identifierList? ')'
-    |   Identifier ':' DigitSequence  // bit field
+//    |   Identifier ':' DigitSequence  // bit field
     |   '(' typeSpecifier? pointer directDeclarator ')' // function pointer like: (__cdecl *f)
     ;
 

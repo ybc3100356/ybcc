@@ -26,22 +26,17 @@ antlr_target(CParser ${CMAKE_SOURCE_DIR}/grammar/C.g4 LEXER PARSER
         PACKAGE c_grammar
         VISITOR)
 
-antlr_target(TinyCParser ${CMAKE_SOURCE_DIR}/grammar/TinyC.g4 LEXER PARSER
-        PACKAGE tinyc_grammar
-        VISITOR)
-
 # include generated files in project environment
 include_directories(${ANTLR_CParser_OUTPUT_DIR})
-include_directories(${ANTLR_TinyCParser_OUTPUT_DIR})
+
+add_subdirectory(src)
+include_directories(src)
 
 # add generated grammar to demo binary target
-add_executable(${PROJECT_NAME} mycc.cpp
+aux_source_directory(src MAIN_SRC_FILES)
+add_executable(${PROJECT_NAME} ${MAIN_SRC_FILES}
         ${ANTLR_CParser_CXX_OUTPUTS}
         )
 
-add_executable(${TEST_EXAMPLE} tinycc.cpp
-        ${ANTLR_TinyCParser_CXX_OUTPUTS}
-        )
-
 target_link_libraries(${PROJECT_NAME} antlr4_static)
-target_link_libraries(${TEST_EXAMPLE} antlr4_static)
+target_link_libraries(${PROJECT_NAME} utilities)
