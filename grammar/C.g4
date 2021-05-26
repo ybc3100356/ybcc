@@ -120,10 +120,10 @@ declarationSpecifierList
     ;
 
 declarationSpecifier
-    :   storageClassSpecifier
-    |   typeSpecifier
-    |   typeQualifier
-    |   functionSpecifier
+//    :   storageClassSpecifier
+    :   typeSpecifier
+//    |   typeQualifier
+//    |   functionSpecifier
 //    |   alignmentSpecifier
     ;
 
@@ -146,13 +146,14 @@ storageClassSpecifier
     |   'register'
     ;
 
+// TODO: add userdefine-type
 typeSpecifier
     :   simpleTypeSpecifier
-    |   structOrUnionSpecifier
-    |   enumSpecifier
-    |   typedefName
+//    |   structOrUnionSpecifier
+//    |   enumSpecifier
+//    |   typedefName
 //    |   '__typeof__' '(' constantExpression ')' // GCC extension
-    |   typeSpecifier pointer
+//    |   typeSpecifier pointer
     ;
 
 simpleTypeSpecifier
@@ -188,7 +189,9 @@ structDeclaration
     ;
 
 specifierQualifierList
-    :   (typeSpecifier | typeQualifier)+
+    :   (typeSpecifier
+//    |typeQualifier
+    )+
     ;
 
 structDeclaratorList
@@ -217,11 +220,11 @@ enumerationConstant
     :   Identifier
     ;
 
-typeQualifier
-    :   'const'
-    |   'restrict'
-    |   'volatile'
-    ;
+//typeQualifier
+//    :   'const'
+//    |   'restrict'
+//    |   'volatile'
+//    ;
 
 functionSpecifier
     :   'inline'
@@ -233,29 +236,31 @@ functionSpecifier
 //    ;
 
 declarator
-    :   pointer? directDeclarator
+    :
+//    pointer?
+    directDeclarator
     ;
 
 directDeclarator
     :   Identifier
     |   '(' declarator ')'
-    |   directDeclarator '[' typeQualifierList? assignmentExpression? ']'
-    |   directDeclarator '[' 'static' typeQualifierList? assignmentExpression ']'
-    |   directDeclarator '[' typeQualifierList 'static' assignmentExpression ']'
-    |   directDeclarator '[' typeQualifierList? '*' ']'
+//    |   directDeclarator '[' typeQualifierList? assignmentExpression? ']'
+//    |   directDeclarator '[' 'static' typeQualifierList? assignmentExpression ']'
+//    |   directDeclarator '[' typeQualifierList 'static' assignmentExpression ']'
+//    |   directDeclarator '[' typeQualifierList? '*' ']'
     |   directDeclarator '(' parameterTypeList ')'
     |   directDeclarator '(' identifierList? ')'
 //    |   Identifier ':' DigitSequence  // bit field
-    |   '(' typeSpecifier? pointer directDeclarator ')' // function pointer like: (__cdecl *f)
+//    |   '(' typeSpecifier? pointer directDeclarator ')' // function pointer like: (__cdecl *f)
     ;
 
-pointer
-    :  ('*' typeQualifierList?)+
-    ;
-
-typeQualifierList
-    :   typeQualifier+
-    ;
+//pointer
+//    :  ('*' typeQualifierList?)+
+//    ;
+//
+//typeQualifierList
+//    :   typeQualifier+
+//    ;
 
 parameterTypeList
     :   parameterList (',' '...')?
@@ -279,8 +284,10 @@ typeName
     ;
 
 abstractDeclarator
-    :   pointer
-    |   pointer? directAbstractDeclarators
+    :
+//    pointer
+//    |   pointer?
+    directAbstractDeclarators
     ;
 
 directAbstractDeclarators
@@ -289,9 +296,9 @@ directAbstractDeclarators
 
 directAbstractDeclarator
     :   '(' abstractDeclarator ')'
-    |   '[' typeQualifierList? assignmentExpression? ']'
-    |   '[' 'static' typeQualifierList? assignmentExpression ']'
-    |   '[' typeQualifierList 'static' assignmentExpression ']'
+//    |   '[' typeQualifierList? assignmentExpression? ']'
+//    |   '[' 'static' typeQualifierList? assignmentExpression ']'
+//    |   '[' typeQualifierList 'static' assignmentExpression ']'
     |   '[' '*' ']'
     |   '(' parameterTypeList? ')'
     ;

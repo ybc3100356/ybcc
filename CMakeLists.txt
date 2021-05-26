@@ -1,42 +1,66 @@
 # CMakeLists.txt
-cmake_minimum_required(VERSION 3.7)
+cmake_minimum_required(VERSION 3.10)
 
 project(mycc)
-set(TEST_EXAMPLE tinycc)
-
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 # compiler must be 11 or 14
 set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 # required if linking to static library
 add_definitions(-DANTLR4CPP_STATIC)
 # using /MD flag for antlr4_runtime (for Visual C++ compilers only)
 set(ANTLR4_WITH_STATIC_CRT OFF)
-# add external build for antlrcpp
-include(ExternalAntlr4Cpp)
-# add antrl4cpp artifacts to project environment
-include_directories(${ANTLR4_INCLUDE_DIRS})
+
+find_package(Java)
+
+include_directories(
+    ${PROJECT_SOURCE_DIR}/grammar/
+    ${PROJECT_SOURCE_DIR}/antlr/
+    ${PROJECT_SOURCE_DIR}/antlr/antlr4-runtime/
+    ${PROJECT_SOURCE_DIR}/src/
+)
+
+file(GLOB antlr4-cpp-src
+    ${PROJECT_SOURCE_DIR}/antlr/antlr4-runtime/*.cpp
+    ${PROJECT_SOURCE_DIR}/antlr/antlr4-runtime/atn/*.cpp
+    ${PROJECT_SOURCE_DIR}/antlr/antlr4-runtime/dfa/*.cpp
+    ${PROJECT_SOURCE_DIR}/antlr/antlr4-runtime/misc/*.cpp
+    ${PROJECT_SOURCE_DIR}/antlr/antlr4-runtime/support/*.cpp
+    ${PROJECT_SOURCE_DIR}/antlr/antlr4-runtime/tree/*.cpp
+    ${PROJECT_SOURCE_DIR}/antlr/antlr4-runtime/tree/pattern/*.cpp
+    ${PROJECT_SOURCE_DIR}/antlr/antlr4-runtime/tree/xpath/*.cpp
+)
+add_library(antlr4-cpp-runtime ${antlr4-cpp-src})
 
 set(ANTLR_EXECUTABLE ${CMAKE_SOURCE_DIR}/antlr/antlr-4.9.2-complete.jar)
-# add macros to generate ANTLR Cpp code from grammar
-find_package(ANTLR REQUIRED)
+execute_process(
+    WORKING_DIRECTORY
+        ${PROJECT_SOURCE_DIR}/grammar/
+    # Note that this command runs in pure shell
+    COMMAND
+        java -jar ${ANTLR_EXECUTABLE} -Dlanguage=Cpp -no-listener -visitor C.g4
+)
 
-antlr_target(CParser ${CMAKE_SOURCE_DIR}/grammar/C.g4 LEXER PARSER
-        PACKAGE c_grammar
-        VISITOR)
+file(GLOB src_dir
+    ${PROJECT_SOURCE_DIR}/grammar/CLexer.cpp
+    ${PROJECT_SOURCE_DIR}/grammar/CParser.cpp
+    ${PROJECT_SOURCE_DIR}/grammar/CVisitor.cpp
+    ${PROJECT_SOURCE_DIR}/grammar/CBaseVisitor.cpp
+    ${PROJECT_SOURCE_DIR}/src/*.cpp
+    ${PROJECT_SOURCE_DIR}/src/utilities/*.cpp
+)
 
-# include generated files in project environment
-include_directories(${ANTLR_CParser_OUTPUT_DIR})
+add_executable(${PROJECT_NAME} ${src_dir})
+target_link_libraries(${PROJECT_NAME} antlr4-cpp-runtime)
+# target_link_libraries(${PROJECT_NAME} antlr4_static)
 
-add_subdirectory(src)
-include_directories(src)
-
-# add generated grammar to demo binary target
-aux_source_directory(src MAIN_SRC_FILES)
-add_executable(${PROJECT_NAME} ${MAIN_SRC_FILES}
-        ${ANTLR_CParser_CXX_OUTPUTS}
-        )
-
-target_link_libraries(${PROJECT_NAME} antlr4_static)
-target_link_libraries(${PROJECT_NAME} utilities)
+# Add custom target update_antlr, use `make update_antlr` to update your lexer & grammar rules anytime
+add_custom_target(update_antlr
+    WORKING_DIRECTORY
+        ${PROJECT_SOURCE_DIR}/grammar/
+    COMMAND 
+        java -jar ${ANTLR_EXECUTABLE} -Dlanguage=Cpp -no-listener -visitor C.g4
+    COMMENT 
+        "Auto updates for developing antlr grammar"
+)

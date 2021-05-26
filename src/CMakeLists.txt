@@ -1,2 +1,0 @@
-add_subdirectory(utilities)
-include_directories(utilities)

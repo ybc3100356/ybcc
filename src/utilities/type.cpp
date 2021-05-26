@@ -10,10 +10,10 @@ static const map<multiset<TypeSpecifier>, BaseType> TypeMap = {
 
         // signed char
         {{TypeSpecifier::Char,},                                                                    BaseType::SChar},
-        {{TypeSpecifier::Char,     TypeSpecifier::Signed,},                                         BaseType::SChar},
+        {{TypeSpecifier::Signed,   TypeSpecifier::Char,},                                           BaseType::SChar},
 
         // unsigned char
-        {{TypeSpecifier::Unsigned},                                                                 BaseType::UChar},
+        {{TypeSpecifier::Unsigned, TypeSpecifier::Char,},                                           BaseType::UChar},
 
         // signed short
         {{TypeSpecifier::Short,},                                                                   BaseType::SShort},
@@ -35,10 +35,10 @@ static const map<multiset<TypeSpecifier>, BaseType> TypeMap = {
         {{TypeSpecifier::Unsigned, TypeSpecifier::Int,},                                            BaseType::UInt},
 
         // signed long
-        {{TypeSpecifier::Long,},                                                                    BaseType::SLOng},
-        {{TypeSpecifier::Signed,   TypeSpecifier::Long,},                                           BaseType::SLOng},
-        {{TypeSpecifier::Long,     TypeSpecifier::Int,},                                            BaseType::SLOng},
-        {{TypeSpecifier::Signed,   TypeSpecifier::Long,  TypeSpecifier::Int,},                      BaseType::SLOng},
+        {{TypeSpecifier::Long,},                                                                    BaseType::SLong},
+        {{TypeSpecifier::Signed,   TypeSpecifier::Long,},                                           BaseType::SLong},
+        {{TypeSpecifier::Long,     TypeSpecifier::Int,},                                            BaseType::SLong},
+        {{TypeSpecifier::Signed,   TypeSpecifier::Long,  TypeSpecifier::Int,},                      BaseType::SLong},
 
         // unsigned long
         {{TypeSpecifier::Unsigned, TypeSpecifier::Long,},                                           BaseType::ULong},

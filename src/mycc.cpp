@@ -5,17 +5,19 @@
 #include "CParser.h"
 #include "CBaseVisitor.h"
 #include "ParserRuleContext.h"
+
+#include "utilities/type.h"
+
 #include <vector>
 #include <map>
-#include "utilities/type.h"
 #include <stdexcept>
+#include <memory>
 
-using namespace c_grammar;
+using namespace antlrcpp;
 using namespace antlr4;
 using std::vector;
 using std::string;
 using std::map;
-using std::make_pair;
 using strings = vector<string>;
 
 class TypeError : std::exception {
@@ -35,6 +37,7 @@ public:
 
     antlrcpp::Any visitDeclaration(CParser::DeclarationContext *ctx) override {
         auto type = visit(ctx->declarationSpecifiers()).as<CType>();
+        // TODO: array type
 //        strings namelist = visit(ctx->initDeclaratorList()).as<strings>();
 //        for (auto &name : namelist) {
         declarations.insert(make_pair(ctx->getText(), type));
@@ -43,90 +46,86 @@ public:
     }
 
     antlrcpp::Any visitDeclarationSpecifiers(CParser::DeclarationSpecifiersContext *ctx) override {
-        auto type = visit(ctx->declarationSpecifierList()).as<CType>();
-        type.definedType = (ctx->typedefSpecifier());
+        auto typeNode = visit(ctx->declarationSpecifierList()).as<CTypeNodePtr>();
+        CType type(typeNode, bool(ctx->typedefSpecifier()));
         return type;
     }
 
     antlrcpp::Any visitDeclarationSpecifierList(CParser::DeclarationSpecifierListContext *ctx) override {
-        CType type(StorageClassSpecifier::None);
+        CTypeNodePtr typeNode(new SimpleTypeNode(nullptr));
         TypeSpecifiers typeSpecifiers;
         for (auto &specifier : ctx->declarationSpecifier()) {
-            if (auto s = specifier->storageClassSpecifier()) {
-                if (type.storageClass != StorageClassSpecifier::None) {
+            /*if (auto s = specifier->storageClassSpecifier()) {
+                // TODO: another specifiers
+                }
+                if (typeNode->storageClass != StorageClassSpecifier::None) {
                     throw TypeError("multiple storage class specifier!");
                 }
-                type.storageClass = visit(s).as<StorageClassSpecifier>();
+                typeNode->storageClass = visit(s).as<StorageClassSpecifier>();
             } else if (auto s = specifier->typeQualifier()) {
-                type.qualifier = visit(s).as<QualifierSpecifier>();
+                typeNode->qualifier = visit(s).as<QualifierSpecifier>();
             } else if (auto s = specifier->functionSpecifier()) {
-                type.function = visit(s).as<FunctionSpecifier>();
-            } else {
+                typeNode->function = visit(s).as<FunctionSpecifier>();
+            } else
+            {*/
                 // type specifier
                 auto typeSpecifier = specifier->typeSpecifier();
                 if (auto s = typeSpecifier->simpleTypeSpecifier()) {
+                    // simple type specifier
                     typeSpecifiers.push_back(visit(s).as<TypeSpecifier>());
-                } else if (auto s = typeSpecifier->structOrUnionSpecifier()) {
-                    type.compoundTypesPtr = visit(s->structDeclarationList()).as<CompoundTypesPtr>();
-                    type.baseType = visit(s->structOrUnion()).as<BaseType>();
+
+                }
+                // TODO: compound type
+                /*else if (auto s = typeSpecifier->structOrUnionSpecifier()) {
+                    // struct
+                    if (!typeSpecifiers.empty()) // wrong! something like "struct int" was defined!
+                        throw TypeError("multiple base type specifier!");
+                    StructTypeNodePtr structTypeNode(new StructTypeNode(typeNode));
+                    structTypeNode->childNodes = visit(s->structDeclarationList()).as<CompoundTypesPtr>();
+                    structTypeNode->baseType = visit(s->structOrUnion()).as<BaseType>();
+                    typeNode = structTypeNode;
+
                 } else if (auto s = typeSpecifier->enumSpecifier()) {
+                    // enum
 
                 } else if (auto s = typeSpecifier->typedefName()) {
+                    // typedef
+                    if (!typeSpecifiers.empty()) // wrong! something like "A int" was defined!
+                        throw TypeError("multiple base type specifier!");
 
-                } else // pointer
+                    auto definedName = visit(s).as<string>();
+                    auto definedType = declarations.find(definedName);
+
+                    // check validity of typedef symbol
+                    if (definedType == declarations.end()) {
+                        throw TypeError((string("undefined symbol name:") + definedName).c_str());
+                    } else if (!definedType->second.definedType) {
+                        throw TypeError((string("this symbol is not a defined type:") + definedName).c_str());
+                    }
+
+                    typeNode = definedType->second.node;
+                } else // pointer, array
                 {
 
                 }
-            }
+            }*/
         }
-        type.baseType = getBaseType(typeSpecifiers);
-        return type;
+
+        // simple type
+        return CTypeNodePtr(new SimpleTypeNode(typeNode, getBaseType(typeSpecifiers)));
     }
 
-    antlrcpp::Any visitStructDeclarationList(CParser::StructDeclarationListContext *ctx) override {
-        auto types = new CompoundTypes();
+    /*
+     * antlrcpp::Any visitStructDeclarationList(CParser::StructDeclarationListContext *ctx) override {
+        CompoundTypesPtr types(new CompoundTypes());
         for (auto specifier :ctx->structDeclaration()) {
-            types->push_back(visit(specifier).as<CompoundType>());
+            types.get()->push_back(visit(specifier).as<CTypeNodePtr>());
         }
         return types;
-    }
+    }*/
 
-    antlrcpp::Any visitStructDeclaration(CParser::StructDeclarationContext *ctx) override {
-        return visitChildren(ctx);
-    }
-
-    antlrcpp::Any visitSpecifierQualifierList(CParser::SpecifierQualifierListContext *ctx) override {
-        return visitChildren(ctx);
-    }
-
-    antlrcpp::Any visitStructDeclaratorList(CParser::StructDeclaratorListContext *ctx) override {
-        return visitChildren(ctx);
-    }
-
-    antlrcpp::Any visitStructDeclarator(CParser::StructDeclaratorContext *ctx) override {
-        return visitChildren(ctx);
-    }
-
-    antlrcpp::Any visitEnumSpecifier(CParser::EnumSpecifierContext *ctx) override {
-        return visitChildren(ctx);
-    }
-
-    antlrcpp::Any visitEnumeratorList(CParser::EnumeratorListContext *ctx) override {
-        return visitChildren(ctx);
-    }
-
-    antlrcpp::Any visitEnumerator(CParser::EnumeratorContext *ctx) override {
-        return visitChildren(ctx);
-    }
-
-    antlrcpp::Any visitEnumerationConstant(CParser::EnumerationConstantContext *ctx) override {
-        return visitChildren(ctx);
-    }
 
     antlrcpp::Any visitInitDeclaratorList(CParser::InitDeclaratorListContext *ctx) override {
-        for (auto &declarator:ctx->initDeclarator()) {
-
-        }
         return visitChildren(ctx);
     }
 
@@ -135,15 +134,15 @@ public:
     }
 
     antlrcpp::Any visitTypeSpecifier(CParser::TypeSpecifierContext *ctx) override {
-        try {
-            return static_cast<TypeSpecifier>(dynamic_cast<tree::TerminalNode *>(ctx->children.front())->getSymbol()->getType());
-        }
-        catch (std::bad_cast &) {
-            return visitChildren(ctx);
-        }
+//        try {
+        return static_cast<TypeSpecifier>(dynamic_cast<tree::TerminalNode *>(ctx->children.front())->getSymbol()->getType());
+//        }
+//        catch (std::bad_cast &) {
+//            return visitChildren(ctx);
+//        }
     }
 
-    antlrcpp::Any visitStorageClassSpecifier(CParser::StorageClassSpecifierContext *ctx) override {
+    /*antlrcpp::Any visitStorageClassSpecifier(CParser::StorageClassSpecifierContext *ctx) override {
         return static_cast<StorageClassSpecifier>(dynamic_cast<tree::TerminalNode *>(ctx->children.front())->getSymbol()->getType());
     }
 
@@ -162,11 +161,9 @@ public:
     antlrcpp::Any visitSimpleTypeSpecifier(CParser::SimpleTypeSpecifierContext *ctx) override {
         auto test = static_cast<TypeSpecifier>(dynamic_cast<tree::TerminalNode *>(ctx->children.front())->getSymbol()->getType());
         return test;
-    }
+    }*/
 
-    antlrcpp::Any visitDeclarator(CParser::DeclaratorContext *ctx) override {
-        return visitChildren(ctx);
-    }
+
 
 };
 
@@ -192,21 +189,20 @@ void preprocess() {
 
 
 int main(int argc, const char *argv[]) {
-    std::ifstream src_file_stream("../test_src/test.c");
+    std::ifstream src_file_stream("../test/test.c");
     ANTLRInputStream input(src_file_stream);
     CLexer lexer(&input);
     CommonTokenStream tokens(&lexer);
     CParser parser(&tokens);
     tree::ParseTree *tree = parser.compilationUnit();
-//    std::wstring s = antlrcpp::s2ws(tree->toStringTree(&parser)) + L"\n";
-//    std::wcout << "Parse Tree: " << s << std::endl;
+    std::cout << tree->toStringTree() << std::endl;
 
     DeclarationVisitor visitor;
     visitor.visit(tree);
     for (auto &declaration:visitor.declarations) {
         std::cout <<
                   "name:[" << declaration.first <<
-                  "] type:[" << (size_t) declaration.second.baseType << "]"
+                  "] type:[" << (size_t) declaration.second.node.get()->getNodeType() << "]"
                   << std::endl;
     }
     return 0;

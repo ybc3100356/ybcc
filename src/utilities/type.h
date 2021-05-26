@@ -6,15 +6,17 @@
 #define MYCC_TYPE_H
 
 #include "CLexer.h"
+#include <utility>
 #include <vector>
 #include <memory>
 #include <map>
 
-using namespace c_grammar;
+using namespace antlrcpp;
 using std::vector;
 using std::string;
 using std::multiset;
 using std::map;
+using std::shared_ptr;
 
 enum class BaseType {
     Error = 0,
@@ -25,7 +27,7 @@ enum class BaseType {
     UShort,
     SInt,
     UInt,
-    SLOng,
+    SLong,
     ULong,
     SLongLong,
     ULongLong,
@@ -33,9 +35,13 @@ enum class BaseType {
     Double,
     LongDouble,
     Bool,
+
+    // user define
     Struct,
     Union,
     Enum,
+    Pointer,
+    Array,
 };
 
 enum class StorageClassSpecifier : size_t {
@@ -47,7 +53,6 @@ enum class StorageClassSpecifier : size_t {
 };
 
 enum class QualifierSpecifier : size_t {
-    // qualifier
     None = 0,
     ConstSpecifier = CLexer::Const,
     RestrictSpecifier = CLexer::Restrict,
@@ -81,35 +86,89 @@ enum class TypeSpecifier : size_t {
     Enum = CLexer::Enum,
 };
 
-class CompoundType {
-    BaseType type;
-    string name;
+using TypeSpecifiers = vector<TypeSpecifier>;
+
+class CTypeNode {
+public:
+    shared_ptr<CTypeNode> *node;
+    QualifierSpecifier qualifier;
+    FunctionSpecifier function;
+    StorageClassSpecifier storageClass;
+
+    virtual BaseType getNodeType() = 0;
 };
 
-using CompoundTypes = vector<CompoundType>;
-using CompoundTypesPtr = std::shared_ptr<CompoundTypes>;
-using TypeSpecifiers = vector<TypeSpecifier>;
-//using SpecifiersPtr = std::shared_ptr<Specifiers>;
+using CTypeNodePtr = shared_ptr<CTypeNode>;
+using CompoundTypes = vector<CTypeNodePtr>;
+using CompoundTypesPtr = shared_ptr<CompoundTypes>;
 
 class CType {
 public:
-    BaseType baseType;
+    CTypeNodePtr node;
     bool definedType;
-    CompoundTypesPtr compoundTypesPtr;
-    StorageClassSpecifier storageClass;
-    QualifierSpecifier qualifier;
-    FunctionSpecifier function;
 
-    explicit CType(StorageClassSpecifier storageClass) :
-            baseType(BaseType::Error),
-            definedType(false),
-            compoundTypesPtr(nullptr),
-            storageClass(storageClass),
-            qualifier(QualifierSpecifier::None),
-            function(FunctionSpecifier::None) {
+    explicit CType(CTypeNodePtr node = nullptr, bool definedType = false) :
+            node(std::move(node)),
+            definedType(definedType) {
     }
 };
 
+class StructTypeNode : public CTypeNode {
+public:
+    BaseType baseType; // struct or union
+    CompoundTypesPtr childNodes;
+
+    explicit StructTypeNode(const CTypeNodePtr &node, BaseType baseType = BaseType::Error)
+            : CTypeNode(*node), baseType(baseType), childNodes(nullptr) {}
+
+    BaseType getNodeType() override {
+        return baseType;
+    }
+};
+
+using StructTypeNodePtr = shared_ptr<StructTypeNode>;
+
+class PointerTypeNode : public CTypeNode {
+public:
+    CTypeNodePtr ptrToNode;
+
+    explicit PointerTypeNode(const CTypeNodePtr &node)
+            : CTypeNode(*node) {}
+
+    BaseType getNodeType() override {
+        return BaseType::Pointer;
+    }
+};
+
+using PointerTypeNodePtr = shared_ptr<PointerTypeNode>;
+
+class ArrayTypeNode : public CTypeNode {
+public:
+    CTypeNodePtr arrayBaseNode;
+
+    explicit ArrayTypeNode(const CTypeNodePtr &node)
+            : CTypeNode(*node) {}
+
+    BaseType getNodeType() override {
+        return BaseType::Array;
+    }
+};
+
+using ArrayTypeNodePtr = shared_ptr<ArrayTypeNode>;
+
+class SimpleTypeNode : public CTypeNode {
+public:
+    BaseType baseType;
+
+    explicit SimpleTypeNode(const CTypeNodePtr &node, BaseType baseType = BaseType::Error)
+            : CTypeNode(*node), baseType(baseType) {}
+
+    BaseType getNodeType() override {
+        return baseType;
+    }
+};
+
+using SimpleTypeNodePtr = shared_ptr<SimpleTypeNode>;
 
 BaseType getBaseType(TypeSpecifiers &specifiers);
 
