@@ -20,7 +20,6 @@ using namespace antlr4;
 using std::vector;
 using std::string;
 using strings = vector<string>;
-
 using std::map;
 using std::string;
 
@@ -54,6 +53,13 @@ public:
     antlrcpp::Any visitInitDeclarator(CParser::InitDeclaratorContext *ctx) override;
 
     antlrcpp::Any visitTypeSpecifier(CParser::TypeSpecifierContext *ctx) override;
+
+    antlrcpp::Any visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx) override;
+
+    antlrcpp::Any visitDirectDeclarator(CParser::DirectDeclaratorContext *ctx) override;
+
+    antlrcpp::Any visitDeclarator(CParser::DeclaratorContext *ctx) override;
+
 };
 
 
