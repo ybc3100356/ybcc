@@ -18,6 +18,7 @@ include_directories(
     ${PROJECT_SOURCE_DIR}/grammar/
     ${PROJECT_SOURCE_DIR}/antlr/
     ${PROJECT_SOURCE_DIR}/antlr/antlr4-runtime/
+    ${PROJECT_SOURCE_DIR}/src/AST
     ${PROJECT_SOURCE_DIR}/src/
 )
 
@@ -48,12 +49,12 @@ file(GLOB src_dir
     ${PROJECT_SOURCE_DIR}/grammar/CVisitor.cpp
     ${PROJECT_SOURCE_DIR}/grammar/CBaseVisitor.cpp
     ${PROJECT_SOURCE_DIR}/src/*.cpp
+    ${PROJECT_SOURCE_DIR}/src/AST/*.cpp
     ${PROJECT_SOURCE_DIR}/src/utilities/*.cpp
 )
 
 add_executable(${PROJECT_NAME} ${src_dir})
 target_link_libraries(${PROJECT_NAME} antlr4-cpp-runtime)
-# target_link_libraries(${PROJECT_NAME} antlr4_static)
 
 # Add custom target update_antlr, use `make update_antlr` to update your lexer & grammar rules anytime
 add_custom_target(update_antlr
