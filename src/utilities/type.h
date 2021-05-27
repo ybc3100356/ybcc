@@ -18,7 +18,7 @@ using std::multiset;
 using std::map;
 using std::shared_ptr;
 
-enum class BaseType {
+enum class BaseType : size_t {
     Error = 0,
     Void,
     SChar,
@@ -195,5 +195,7 @@ public:
 using FunctionTypeNodePtr = shared_ptr<FunctionTypeNode>;
 
 BaseType getBaseType(TypeSpecifiers &specifiers);
+
+const string &getTypeStr(BaseType type);
 
 #endif //MYCC_TYPE_H

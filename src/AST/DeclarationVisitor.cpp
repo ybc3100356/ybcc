@@ -6,10 +6,10 @@
 
 antlrcpp::Any DeclarationVisitor::visitDeclaration(CParser::DeclarationContext *ctx) {
     auto type = visit(ctx->declarationSpecifiers()).as<CType>();
-//    strings namelist = visit(ctx->initDeclaratorList()).as<strings>();
-//    for (auto &name : namelist) {
-    declarations.insert(make_pair(ctx->getText(), type));
-//    }
+    strings namelist = visit(ctx->initDeclaratorList()).as<strings>();
+    for (auto &name : namelist) {
+        SymTab::getInstance().entries.insert({name, SymTabEntry(type)});
+    }
     return nullptr;
 }
 
@@ -42,13 +42,18 @@ antlrcpp::Any DeclarationVisitor::visitSimpleTypeSpecifier(CParser::SimpleTypeSp
 }
 
 antlrcpp::Any DeclarationVisitor::visitInitDeclaratorList(CParser::InitDeclaratorListContext *ctx) {
-    for (auto &specifier : ctx->initDeclarator()) {
-
+    strings s;
+    for (auto &initD : ctx->initDeclarator()) {
+        auto name = visit(initD->declarator()).as<string>();
+        s.push_back(name);
+        // TODO: initializer
     }
+    return s;
 }
 
 antlrcpp::Any DeclarationVisitor::visitInitDeclarator(CParser::InitDeclaratorContext *ctx) {
-    return visitChildren(ctx);
+    // TODO: initializer
+    return ctx->declarator()->directDeclarator()->Identifier()->getText();
 }
 
 antlrcpp::Any DeclarationVisitor::visitTypeSpecifier(CParser::TypeSpecifierContext *ctx) {
@@ -62,11 +67,11 @@ antlrcpp::Any DeclarationVisitor::visitFunctionDefinition(CParser::FunctionDefin
               "name:[" << name <<
               "] type:[" << (size_t) returnType.getType()->getNodeType() << "]"
               << std::endl;
-    declarations.insert(make_pair(name, returnType));
+    SymTab::getInstance().entries.insert({name, SymTabEntry(returnType)});
     return nullptr;
 }
 
-antlrcpp::Any DeclarationVisitor::visitDeclarator(CParser::DeclaratorContext *ctx)  {
+antlrcpp::Any DeclarationVisitor::visitDeclarator(CParser::DeclaratorContext *ctx) {
     return ctx->directDeclarator()->Identifier()->getText();
 }
 

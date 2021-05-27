@@ -4,7 +4,7 @@
 #include "CLexer.h"
 #include "CParser.h"
 
-#include "utilities/type.h"
+#include "utilities/SymTab.h"
 #include "AST/DeclarationVisitor.h"
 #include <vector>
 #include <stdexcept>
@@ -21,10 +21,10 @@ void preprocess() {
 }
 
 int main(int argc, const char *argv[]) {
-//    std::ifstream src_file_stream("../test/test.c");
-    string src_file_stream("#include \"stdio.h\"\n"
-                           "int main(){}"
-                           "int a(int x,...){}");
+    std::ifstream src_file_stream("../test/test.c");
+//    string src_file_stream("#include \"stdio.h\"\n"
+//                           "int main(){}"
+//                           "int a(int x,...){}");
     ANTLRInputStream input(src_file_stream);
     CLexer lexer(&input);
     CommonTokenStream tokens(&lexer);
@@ -34,11 +34,9 @@ int main(int argc, const char *argv[]) {
     DeclarationVisitor visitor;
     visitor.visit(tree);
     std::cout << "symbol table:" << std::endl;
-    for (auto &declaration:visitor.declarations) {
-        std::cout <<
-                  "name:[" << declaration.first <<
-                  "] type:[" << (size_t) declaration.second.getType().get()->getNodeType() << "]"
-                  << std::endl;
+    for (auto &entry:SymTab::getInstance().entries) {
+        std::cout << "name:[" << entry.first << "] type:[" << getTypeStr(entry.second.type.getType()->getNodeType())
+                  << "]" << std::endl;
     }
     return 0;
 }

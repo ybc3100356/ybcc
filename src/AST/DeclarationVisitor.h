@@ -10,7 +10,7 @@
 #include "CParser.h"
 
 #include "CBaseVisitor.h"
-#include "utilities/type.h"
+#include "utilities/SymTab.h"
 #include "AST/DeclarationVisitor.h"
 #include <vector>
 #include <stdexcept>
@@ -20,9 +20,6 @@ using namespace antlr4;
 using std::vector;
 using std::string;
 using strings = vector<string>;
-using std::map;
-using std::string;
-
 
 class TypeError : std::exception {
     string content;
@@ -38,8 +35,6 @@ public:
 
 class DeclarationVisitor : public CBaseVisitor {
 public:
-    map<string, CType> declarations;
-
     antlrcpp::Any visitDeclaration(CParser::DeclarationContext *ctx) override;
 
     antlrcpp::Any visitDeclarationSpecifiers(CParser::DeclarationSpecifiersContext *ctx) override;

@@ -76,3 +76,32 @@ BaseType getBaseType(TypeSpecifiers &specifiers) {
     else
         return BaseType::Error;
 }
+
+static const string TypeStrings[] = {
+        [(size_t) BaseType::Error] = "Error",
+        [(size_t) BaseType::Void] = "Void",
+        [(size_t) BaseType::SChar] = "SChar",
+        [(size_t) BaseType::UChar] = "UChar",
+        [(size_t) BaseType::SShort] = "SShort",
+        [(size_t) BaseType::UShort] = "UShort",
+        [(size_t) BaseType::SInt] = "SInt",
+        [(size_t) BaseType::UInt] = "UInt",
+        [(size_t) BaseType::SLong] = "SLong",
+        [(size_t) BaseType::ULong] = "ULong",
+        [(size_t) BaseType::SLongLong] = "SLongLong",
+        [(size_t) BaseType::ULongLong] = "ULongLong",
+        [(size_t) BaseType::Float] = "Float",
+        [(size_t) BaseType::Double] = "Double",
+        [(size_t) BaseType::LongDouble] = "LongDouble",
+        [(size_t) BaseType::Bool] = "Bool",
+        [(size_t) BaseType::Struct] = "Struct",
+        [(size_t) BaseType::Union] = "Union",
+        [(size_t) BaseType::Enum] = "Enum",
+        [(size_t) BaseType::Pointer] = "Pointer",
+        [(size_t) BaseType::Array] = "Array",
+        [(size_t) BaseType::Function] = "Function",
+};
+
+const string &getTypeStr(BaseType type) {
+    return TypeStrings[(size_t) type];
+}
