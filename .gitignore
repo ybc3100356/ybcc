@@ -3,5 +3,5 @@ out/
 .idea/
 cmake-build-debug/
 gen/
-test_src/
+test/out/
 .antlr/
