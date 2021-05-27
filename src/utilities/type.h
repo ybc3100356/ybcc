@@ -117,7 +117,7 @@ public:
 
     bool is_typedef() { return definedType; }
 
-    CTypeNodePtr getType() { return typeTree; }
+    CTypeNodePtr getTypeTree() const { return typeTree; }
 
 protected:
     CTypeNodePtr typeTree;
@@ -126,6 +126,34 @@ protected:
 //    FunctionSpecifier function;
 //    StorageClassSpecifier storageClass;
 };
+
+
+class SimpleTypeNode : public CTypeNodeBase {
+public:
+    BaseType getNodeType() override { return baseType; }
+
+    explicit SimpleTypeNode(BaseType type) : CTypeNodeBase(type) {}
+};
+
+using SimpleTypeNodePtr = shared_ptr<SimpleTypeNode>;
+
+class FunctionTypeNode : public CTypeNodeBase {
+    vector<CTypeNodePtr> paramList;
+public:
+    BaseType getNodeType() override {
+        return BaseType::Function;
+    }
+
+    BaseType getReturnType() {
+        return childNode->getNodeType();
+    }
+
+    explicit FunctionTypeNode(const CType &returnType)
+            : CTypeNodeBase(BaseType::Function, returnType.getTypeTree()) {}
+
+};
+
+using FunctionTypeNodePtr = shared_ptr<FunctionTypeNode>;
 
 //class StructTypeNode : public CTypeNode {
 //public:
@@ -170,29 +198,6 @@ protected:
 //
 //using ArrayTypeNodePtr = shared_ptr<ArrayTypeNode>;
 
-class SimpleTypeNode : public CTypeNodeBase {
-public:
-    BaseType getNodeType() override { return baseType; }
-
-    explicit SimpleTypeNode(BaseType type) : CTypeNodeBase(type) {}
-};
-
-using SimpleTypeNodePtr = shared_ptr<SimpleTypeNode>;
-
-class FunctionTypeNode : public CTypeNodeBase {
-public:
-    BaseType getNodeType() override {
-        return BaseType::Function;
-    }
-
-    BaseType getReturnType() {
-        return baseType;
-    }
-//    explicit FunctionTypeNode(BaseType type) : CTypeNodeBase(type) {}
-
-};
-
-using FunctionTypeNodePtr = shared_ptr<FunctionTypeNode>;
 
 BaseType getBaseType(TypeSpecifiers &specifiers);
 

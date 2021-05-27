@@ -9,6 +9,7 @@
 #include <vector>
 #include <unordered_map>
 #include <string>
+#include "error.h"
 
 class SymTabEntry {
 public:
@@ -28,9 +29,16 @@ public:
         return instance;
     }
 
-    unordered_map<string, SymTabEntry> entries;
+    void add(const string &, const SymTabEntry &);
+
+    const SymTabEntry &get(const string &);
+
+    const unordered_map<string, SymTabEntry> getEntries();
+
 private:
     SymTab() = default;
+
+    unordered_map<string, SymTabEntry> entries;
 
 public:
     SymTab(SymTab const &) = delete;

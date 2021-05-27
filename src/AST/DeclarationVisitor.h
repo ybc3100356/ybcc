@@ -8,12 +8,12 @@
 #include "antlr4-runtime.h"
 #include "CLexer.h"
 #include "CParser.h"
+#include "ParserRuleContext.h"
 
 #include "CBaseVisitor.h"
 #include "utilities/SymTab.h"
 #include "AST/DeclarationVisitor.h"
 #include <vector>
-#include <stdexcept>
 
 using namespace antlrcpp;
 using namespace antlr4;
@@ -21,20 +21,11 @@ using std::vector;
 using std::string;
 using strings = vector<string>;
 
-class TypeError : std::exception {
-    string content;
-
-    const char *what() const noexcept override {
-        return content.c_str();
-    }
-
-public:
-    explicit TypeError(const char *content) : content(content) {}
-};
-
 
 class DeclarationVisitor : public CBaseVisitor {
+    strings compound_context;
 public:
+
     antlrcpp::Any visitDeclaration(CParser::DeclarationContext *ctx) override;
 
     antlrcpp::Any visitDeclarationSpecifiers(CParser::DeclarationSpecifiersContext *ctx) override;
@@ -55,6 +46,9 @@ public:
 
     antlrcpp::Any visitDeclarator(CParser::DeclaratorContext *ctx) override;
 
+//    antlrcpp::Any visitCompoundStatement(CParser::CompoundStatementContext *ctx) override;
+//
+//     antlrcpp::Any visitBlockItem(CParser::BlockItemContext *ctx) override;
 };
 
 

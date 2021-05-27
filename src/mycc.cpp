@@ -32,11 +32,22 @@ int main(int argc, const char *argv[]) {
     tree::ParseTree *tree = parser.compilationUnit();
 
     DeclarationVisitor visitor;
-    visitor.visit(tree);
-    std::cout << "symbol table:" << std::endl;
-    for (auto &entry:SymTab::getInstance().entries) {
-        std::cout << "name:[" << entry.first << "] type:[" << getTypeStr(entry.second.type.getType()->getNodeType())
-                  << "]" << std::endl;
+    try {
+        visitor.visit(tree);
+        std::cout << "symbol table:" << std::endl;
+        for (auto &entry : SymTab::getInstance().getEntries()) {
+            std::cout << "name:[" << entry.first << "] type:[";
+            auto type = entry.second.type.getTypeTree()->getNodeType();
+            std::cout << getTypeStr(type) << "] ";
+            if (type == BaseType::Function) {
+                auto funcType = dynamic_cast<FunctionTypeNode *>(entry.second.type.getTypeTree().get());
+                std::cout << "return type:[" << getTypeStr(funcType->getReturnType()) << "]";
+            }
+            std::cout << std::endl;
+        }
+    }
+    catch (std::exception &e) {
+        std::cerr << e.what() << std::endl;
     }
     return 0;
 }
