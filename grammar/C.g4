@@ -3,7 +3,7 @@ grammar C;
 // expression
 primaryExpression
     :   Identifier
-    |   Constant
+    |   constant
     |   StringLiteral+
     |   '(' expression ')'
     ;
@@ -11,23 +11,33 @@ primaryExpression
 postfixExpression
     :
     primaryExpression
-    ('[' expression ']'
-    | '(' argumentExpressionList? ')'
-    | ('.' | '->') Identifier
-    | ('++' | '--')
-    )*
+//    ('[' expression ']'
+//    | '(' argumentExpressionList? ')'
+//    | postfixOperator
+//    )*
     ;
 
-argumentExpressionList
-    :   assignmentExpression (',' assignmentExpression)*
-    ;
+//postfixOperator
+//    :   '++'
+//    |   '--'
+//    ;
+//
+//argumentExpressionList
+//    :   assignmentExpression (',' assignmentExpression)*
+//    ;
 
 unaryExpression
     :
-    ('++' |  '--' |  'sizeof')*
+    prefixOperator*
     (postfixExpression
     |   unaryOperator castExpression
     )
+    ;
+
+prefixOperator
+    :   '++'
+    |   '--'
+    |   'sizeof'
     ;
 
 unaryOperator
@@ -40,27 +50,55 @@ castExpression
     ;
 
 multiplicativeExpression
-    :   castExpression (('*'|'/'|'%') castExpression)*
+    :   castExpression (multiplicativeOperator castExpression)*
+    ;
+
+multiplicativeOperator
+    :   '*'
+    |   '/'
+    |   '%'
     ;
 
 additiveExpression
-    :   multiplicativeExpression (('+'|'-') multiplicativeExpression)*
+    :   multiplicativeExpression (additiveOperator multiplicativeExpression)*
+    ;
+
+additiveOperator
+    :   '+'
+    |   '-'
     ;
 
 shiftExpression
-    :   additiveExpression (('<<'|'>>') additiveExpression)*
+    :   additiveExpression (shiftOperator additiveExpression)*
+    ;
+
+shiftOperator
+    :   '<<'
+    |   '>>'
     ;
 
 relationalExpression
-    :   shiftExpression (('<'|'>'|'<='|'>=') shiftExpression)*
+    :   shiftExpression (relationalOperator shiftExpression)*
+    ;
+
+relationalOperator
+    :   '<'
+    |   '>'
+    |   '<='
+    |   '>='
     ;
 
 equalityExpression
-    :   relationalExpression (('=='| '!=') relationalExpression)*
+    :   relationalExpression (equalityOperator relationalExpression)*
+    ;
+
+equalityOperator
+    :   '=='
+    |   '!='
     ;
 
 andExpression
-    :   equalityExpression ( '&' equalityExpression)*
+    :   equalityExpression ('&' equalityExpression)*
     ;
 
 exclusiveOrExpression
@@ -76,7 +114,7 @@ logicalAndExpression
     ;
 
 logicalOrExpression
-    :   logicalAndExpression ( '||' logicalAndExpression)*
+    :   logicalAndExpression ('||' logicalAndExpression)*
     ;
 
 conditionalExpression
@@ -407,7 +445,7 @@ HexQuad
     :   HexadecimalDigit HexadecimalDigit HexadecimalDigit HexadecimalDigit
     ;
 
-Constant
+constant
     :   IntegerConstant
     |   FloatingConstant
     //|   EnumerationConstant

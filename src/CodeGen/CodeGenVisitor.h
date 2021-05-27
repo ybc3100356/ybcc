@@ -25,11 +25,9 @@ class CodeGenVisitor : public CBaseVisitor {
 
     antlrcpp::Any visitPostfixExpression(CParser::PostfixExpressionContext *ctx) override;
 
-    antlrcpp::Any visitArgumentExpressionList(CParser::ArgumentExpressionListContext *ctx) override;
+//    antlrcpp::Any visitArgumentExpressionList(CParser::ArgumentExpressionListContext *ctx) override;
 
     antlrcpp::Any visitUnaryExpression(CParser::UnaryExpressionContext *ctx) override;
-
-    antlrcpp::Any visitUnaryOperator(CParser::UnaryOperatorContext *ctx) override;
 
     antlrcpp::Any visitCastExpression(CParser::CastExpressionContext *ctx) override;
 
@@ -57,40 +55,38 @@ class CodeGenVisitor : public CBaseVisitor {
 
     antlrcpp::Any visitAssignmentExpression(CParser::AssignmentExpressionContext *ctx) override;
 
-    antlrcpp::Any visitAssignmentOperator(CParser::AssignmentOperatorContext *ctx) override;
-
-    antlrcpp::Any visitExpression(CParser::ExpressionContext *ctx) override;
-
-    antlrcpp::Any visitConstantExpression(CParser::ConstantExpressionContext *ctx) override;
-
-    // statement
-    antlrcpp::Any visitStatement(CParser::StatementContext *ctx) override;
-
-    antlrcpp::Any visitLabeledStatement(CParser::LabeledStatementContext *ctx) override;
-
-    antlrcpp::Any visitCompoundStatement(CParser::CompoundStatementContext *ctx) override;
-
-    antlrcpp::Any visitBlockItem(CParser::BlockItemContext *ctx) override;
-
-    antlrcpp::Any visitExpressionStatement(CParser::ExpressionStatementContext *ctx) override;
-
-    antlrcpp::Any visitSelectionStatement(CParser::SelectionStatementContext *ctx) override;
-
-    antlrcpp::Any visitIterationStatement(CParser::IterationStatementContext *ctx) override;
-
-    antlrcpp::Any visitForCondition(CParser::ForConditionContext *ctx) override;
-
-    antlrcpp::Any visitForExpression(CParser::ForExpressionContext *ctx) override;
-
-    antlrcpp::Any visitJumpStatement(CParser::JumpStatementContext *ctx) override;
-
-    antlrcpp::Any visitCompilationUnit(CParser::CompilationUnitContext *ctx) override;
-
-    antlrcpp::Any visitTranslationUnit(CParser::TranslationUnitContext *ctx) override;
-
-    antlrcpp::Any visitExternalDeclaration(CParser::ExternalDeclarationContext *ctx) override;
-
-    antlrcpp::Any visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx) override;
+//    antlrcpp::Any visitAssignmentOperator(CParser::AssignmentOperatorContext *ctx) override;
+//
+//    antlrcpp::Any visitExpression(CParser::ExpressionContext *ctx) override;
+//
+//    antlrcpp::Any visitConstantExpression(CParser::ConstantExpressionContext *ctx) override;
+//
+//    // statement
+//    antlrcpp::Any visitLabeledStatement(CParser::LabeledStatementContext *ctx) override;
+//
+//    antlrcpp::Any visitCompoundStatement(CParser::CompoundStatementContext *ctx) override;
+//
+//    antlrcpp::Any visitBlockItem(CParser::BlockItemContext *ctx) override;
+//
+//    antlrcpp::Any visitExpressionStatement(CParser::ExpressionStatementContext *ctx) override;
+//
+//    antlrcpp::Any visitSelectionStatement(CParser::SelectionStatementContext *ctx) override;
+//
+//    antlrcpp::Any visitIterationStatement(CParser::IterationStatementContext *ctx) override;
+//
+//    antlrcpp::Any visitForCondition(CParser::ForConditionContext *ctx) override;
+//
+//    antlrcpp::Any visitForExpression(CParser::ForExpressionContext *ctx) override;
+//
+//    antlrcpp::Any visitJumpStatement(CParser::JumpStatementContext *ctx) override;
+//
+//    antlrcpp::Any visitCompilationUnit(CParser::CompilationUnitContext *ctx) override;
+//
+//    antlrcpp::Any visitTranslationUnit(CParser::TranslationUnitContext *ctx) override;
+//
+//    antlrcpp::Any visitExternalDeclaration(CParser::ExternalDeclarationContext *ctx) override;
+//
+//    antlrcpp::Any visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx) override;
 
 };
 
