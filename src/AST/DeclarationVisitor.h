@@ -8,11 +8,9 @@
 #include "antlr4-runtime.h"
 #include "CLexer.h"
 #include "CParser.h"
-#include "ParserRuleContext.h"
 
 #include "CBaseVisitor.h"
 #include "utilities/SymTab.h"
-#include "AST/DeclarationVisitor.h"
 #include <vector>
 
 using namespace antlrcpp;

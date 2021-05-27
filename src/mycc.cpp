@@ -21,7 +21,7 @@ void preprocess() {
 }
 
 int main(int argc, const char *argv[]) {
-    std::ifstream src_file_stream("../test/test.c");
+    std::ifstream src_file_stream("../test/src/test.c");
 //    string src_file_stream("#include \"stdio.h\"\n"
 //                           "int main(){}"
 //                           "int a(int x,...){}");
@@ -31,23 +31,28 @@ int main(int argc, const char *argv[]) {
     CParser parser(&tokens);
     tree::ParseTree *tree = parser.compilationUnit();
 
-    DeclarationVisitor visitor;
+    DeclarationVisitor declarationVisitor;
     try {
-        visitor.visit(tree);
+        declarationVisitor.visit(tree);
         std::cout << "symbol table:" << std::endl;
         for (auto &entry : SymTab::getInstance().getEntries()) {
             std::cout << "name:[" << entry.first << "] type:[";
             auto type = entry.second.type.getTypeTree()->getNodeType();
             std::cout << getTypeStr(type) << "] ";
+
+            // function
             if (type == BaseType::Function) {
                 auto funcType = dynamic_cast<FunctionTypeNode *>(entry.second.type.getTypeTree().get());
                 std::cout << "return type:[" << getTypeStr(funcType->getReturnType()) << "]";
             }
+
             std::cout << std::endl;
         }
+
     }
     catch (std::exception &e) {
         std::cerr << e.what() << std::endl;
     }
+
     return 0;
 }

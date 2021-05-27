@@ -15,11 +15,12 @@ set(ANTLR4_WITH_STATIC_CRT OFF)
 find_package(Java)
 
 include_directories(
-        ${PROJECT_SOURCE_DIR}/grammar/
+        ${PROJECT_SOURCE_DIR}/grammar/gen
         ${PROJECT_SOURCE_DIR}/antlr/
         ${PROJECT_SOURCE_DIR}/antlr/antlr4-runtime/
         ${PROJECT_SOURCE_DIR}/src/utilities
         ${PROJECT_SOURCE_DIR}/src/Error
+        ${PROJECT_SOURCE_DIR}/src/CodeGen
         ${PROJECT_SOURCE_DIR}/src/AST
         ${PROJECT_SOURCE_DIR}/src/
 )
@@ -36,35 +37,40 @@ file(GLOB antlr4-cpp-src
 )
 add_library(antlr4-cpp-runtime ${antlr4-cpp-src})
 
+if (NOT ${PROJECT_SOURCE_DIR}/grammar/gen)
+    file(MAKE_DIRECTORY ${PROJECT_SOURCE_DIR}/grammar/gen)
+endif ()
+
 set(ANTLR_EXECUTABLE ${CMAKE_SOURCE_DIR}/antlr/antlr-4.9.2-complete.jar)
 execute_process(
-    WORKING_DIRECTORY
+        WORKING_DIRECTORY
         ${PROJECT_SOURCE_DIR}/grammar/
-    # Note that this command runs in pure shell
-    COMMAND
-        java -jar ${ANTLR_EXECUTABLE} -Dlanguage=Cpp -no-listener -visitor C.g4
+        # Note that this command runs in pure shell
+        COMMAND
+        java -jar ${ANTLR_EXECUTABLE} -Dlanguage=Cpp -no-listener -visitor -o gen C.g4
 )
 
 file(GLOB src_dir
-    ${PROJECT_SOURCE_DIR}/grammar/CLexer.cpp
-    ${PROJECT_SOURCE_DIR}/grammar/CParser.cpp
-    ${PROJECT_SOURCE_DIR}/grammar/CVisitor.cpp
-    ${PROJECT_SOURCE_DIR}/grammar/CBaseVisitor.cpp
-    ${PROJECT_SOURCE_DIR}/src/*.cpp
-    ${PROJECT_SOURCE_DIR}/src/AST/*.cpp
+        ${PROJECT_SOURCE_DIR}/grammar/gen/CLexer.cpp
+        ${PROJECT_SOURCE_DIR}/grammar/gen/CParser.cpp
+        ${PROJECT_SOURCE_DIR}/grammar/gen/CVisitor.cpp
+        ${PROJECT_SOURCE_DIR}/grammar/gen/CBaseVisitor.cpp
+        ${PROJECT_SOURCE_DIR}/src/*.cpp
+        ${PROJECT_SOURCE_DIR}/src/AST/*.cpp
         ${PROJECT_SOURCE_DIR}/src/utilities/*.cpp
         ${PROJECT_SOURCE_DIR}/src/Error/*.cpp
-)
+        ${PROJECT_SOURCE_DIR}/src/CodeGen/*.cpp
+        )
 
 add_executable(${PROJECT_NAME} ${src_dir})
 target_link_libraries(${PROJECT_NAME} antlr4-cpp-runtime)
 
 # Add custom target update_antlr, use `make update_antlr` to update your lexer & grammar rules anytime
 add_custom_target(update_antlr
-    WORKING_DIRECTORY
+        WORKING_DIRECTORY
         ${PROJECT_SOURCE_DIR}/grammar/
         COMMAND
-        java -jar ${ANTLR_EXECUTABLE} -Dlanguage=Cpp -no-listener -visitor C.g4
+        java -jar ${ANTLR_EXECUTABLE} -Dlanguage=Cpp -no-listener -visitor -o gen C.g4
         COMMENT
         "Auto updates for developing antlr grammar"
-)
+        )
