@@ -10,9 +10,9 @@ primaryExpression
 
 constant
     :   IntegerConstant
-    |   FloatingConstant
-    //|   EnumerationConstant
-    |   CharacterConstant
+//    |   FloatingConstant
+//    |   EnumerationConstant
+//    |   CharacterConstant
     ;
 
 postfixExpression
@@ -40,7 +40,7 @@ unaryExpression
     :
     prefixOperator*
     (postfixExpression
-    |   unaryOperator castExpression
+    |   unaryOperator unaryExpression
     )
     ;
 
@@ -56,7 +56,6 @@ unaryOperator
 
 castExpression
     :   unaryExpression
-    |   DigitSequence // for
     ;
 
 multiplicativeExpression
@@ -134,19 +133,16 @@ conditionalExpression
 assignmentExpression
     :   conditionalExpression
     |   unaryExpression assignmentOperator assignmentExpression
-    |   DigitSequence // for
     ;
 
 assignmentOperator
     :   '=' | '*=' | '/=' | '%=' | '+=' | '-=' | '<<=' | '>>=' | '&=' | '^=' | '|='
     ;
 
-//expression
-//    :   assignmentExpression (',' assignmentExpression)*
-//    ;
 expression
-    :   DigitSequence
+    :   assignmentExpression (',' assignmentExpression)*
     ;
+
 
 constantExpression
     :   conditionalExpression
@@ -436,8 +432,6 @@ HexQuad
     :   HexadecimalDigit HexadecimalDigit HexadecimalDigit HexadecimalDigit
     ;
 
-
-fragment
 IntegerConstant
     :   DecimalConstant IntegerSuffix?
     |   OctalConstant IntegerSuffix?

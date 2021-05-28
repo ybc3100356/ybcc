@@ -48,7 +48,6 @@ int main(int argc, const char *argv[]) {
                 auto funcType = dynamic_cast<FunctionTypeNode *>(entry.second.type.getTypeTree().get());
                 std::cout << "return type:[" << getTypeStr(funcType->getReturnType()) << "]";
             }
-
             std::cout << std::endl;
         }
 

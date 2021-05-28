@@ -4,11 +4,41 @@
 
 #include "CodeGenVisitor.h"
 
-antlrcpp::Any CodeGenVisitor::visitExpression(CParser::ExpressionContext *ctx) {
-    _code << "\tli $v0, " << ctx->DigitSequence()->getText() << "\n"
+antlrcpp::Any CodeGenVisitor::visitConstant(CParser::ConstantContext *ctx) {
+    _code << "\tli $v0, " << ctx->IntegerConstant()->getText() << "\n"
           << pushReg("v0");
     return ExpType::INT;
 }
+
+antlrcpp::Any CodeGenVisitor::visitUnaryExpression(CParser::UnaryExpressionContext *ctx) {
+    if (auto postExp = ctx->postfixExpression()) {
+        visit(postExp);
+    } else {
+        visit(ctx->unaryExpression());
+        if (auto op = ctx->unaryOperator()) {
+            if (op->Minus()) {      // -
+                _code << popReg("t0")
+                      << rType3("sub", "v0", "0", "t0")
+                      << pushReg("v0");
+                return ExpType::INT;
+            } else if (op->Not()) { // !x, 0->1, non-0 ->0
+                _code << popReg("t0")
+                      << iType("sltiu", "v0", "t0", 1)
+                      << pushReg("v0");
+                return ExpType::INT;
+            } else if (op->Tilde()) // ~x, bit-wise not x
+            {
+                _code << popReg("t0")
+                      << rType3("nor", "v0", "t0", "0")
+                      << rType2("not", "v0", "t0")
+                      << pushReg("v0");
+                return ExpType::INT;
+            }
+        }
+    }
+    return ExpType::UNDEF;
+}
+
 
 antlrcpp::Any CodeGenVisitor::visitCompilationUnit(CParser::CompilationUnitContext *ctx) {
     _data << ".data\n";
@@ -76,10 +106,10 @@ antlrcpp::Any CodeGenVisitor::visitReturnStmt(CParser::ReturnStmtContext *ctx) {
     ExpType type = visit(ctx->expression()).as<ExpType>();
     _code << popReg("v0");
     if (type == ExpType::LEFT) {
-        _code << "\tlw $v0, 0($v0)\n";
+        _code << memI("lw", "v0", "$v0", 0);
     }
     _code << pushReg("v0")
-          << "\taddiu $a0, $v0, 0\n"
+          << iType("addiu", "a0", "v0", 0)
           << "\tli $v0, 1 # syscall(1): print int\n" // print return value ($v0)
           << "\tsyscall\n"
           << popReg("v0");
@@ -91,22 +121,44 @@ antlrcpp::Any CodeGenVisitor::visitReturnStmt(CParser::ReturnStmtContext *ctx) {
     return ExpType::UNDEF;
 }
 
-std::string CodeGenVisitor::pushReg(const std::string &reg) {
-    return "\t#push\n"
-           "\taddiu $sp, $sp, -4\n"
-           "\tsw $" + reg + ", 0($sp)\n";
+inline
+string CodeGenVisitor::pushReg(const string &reg) {
+    return "\t#push(" + reg + ")\n" +
+           iType("addiu", "sp", "sp", -4) +
+           memI("sw", reg, "sp", 0);
 }
 
-std::string CodeGenVisitor::popReg(const std::string &reg) {
-    return "\t#pop\n"
-           "\tlw $" + reg + ", 0($sp)\n"
-                            "\taddiu $sp, $sp, 4\n";
+inline
+string CodeGenVisitor::popReg(const string &reg) {
+    return "\t#pop(" + reg + ")\n" +
+           memI("lw", reg, "sp", 0) +
+           iType("addiu", "sp", "sp", 4);
 }
 
-std::string CodeGenVisitor::popReg(const std::string &reg0, const std::string &reg1) {
-    return "\t#pop2\n"
-           "\tlw $" + reg0 + ", 4($sp)\n"
-                             "\tlw $" + reg1 + ", 0($sp)\n"
-                                               "\taddiu $sp, $sp, 8\n";
+inline
+string CodeGenVisitor::popReg(const string &reg0, const string &reg1) {
+    return "\t#pop2(" + reg0 + "," + reg1 + ")\n" +
+           memI("lw", reg0, "sp", 4) +
+           memI("lw", reg1, "sp", 0) +
+           iType("addiu", "sp", "sp", 8);
 }
 
+inline
+string CodeGenVisitor::memI(const string &op, const string &rs, const string &rt, int offset) {
+    return "\t" + op + " $" + rs + ", " + to_string(offset) + "($" + rt + ")\n";
+}
+
+inline
+string CodeGenVisitor::iType(const string &op, const string &rs, const string &rt, int imm) {
+    return "\t" + op + " $" + rs + ", $" + rt + ", " + to_string(imm) + "\n";
+}
+
+inline
+string CodeGenVisitor::rType3(const string &op, const string &rs, const string &rt, const string &rd) {
+    return "\t" + op + " $" + rs + ", $" + rt + ", $" + rd + "\n";
+}
+
+inline
+string CodeGenVisitor::rType2(const string &op, const string &rs, const string &rt) {
+    return "\t" + op + " $" + rs + ", $" + rt + "\n";
+}

@@ -18,6 +18,7 @@ using namespace antlrcpp;
 using namespace antlr4;
 using std::vector;
 using std::string;
+using std::to_string;
 using strings = vector<string>;
 using std::ostringstream;
 
@@ -42,7 +43,10 @@ public:
     CodeGenVisitor() : blockDep(0), labelCount(0), curFunc(), _code(), _data() {}
 
     // expression
-    antlrcpp::Any visitExpression(CParser::ExpressionContext *ctx) override;
+    antlrcpp::Any visitConstant(CParser::ConstantContext *ctx) override;
+
+    antlrcpp::Any visitUnaryExpression(CParser::UnaryExpressionContext *ctx) override;
+
 
     // statement
     //    antlrcpp::Any visitExpStmt(CParser::ExpStmtContext *ctx) override;
@@ -56,6 +60,13 @@ public:
 
     antlrcpp::Any visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx) override;
 
+    static string memI(const string &op, const string &rs, const string &rt, int offset);
+
+    static string iType(const string &op, const string &rs, const string &rt, int imm);
+
+    static string rType3(const string &op, const string &rs, const string &rt, const string &rd);
+
+    static string rType2(const string &op, const string &rs, const string &rt);
 };
 
 
