@@ -95,6 +95,8 @@ class CTypeNodeBase {
 public:
     virtual BaseType getNodeType() = 0;
 
+    virtual size_t getSize() = 0;
+
     explicit CTypeNodeBase(BaseType baseType = BaseType::Error, shared_ptr<CTypeNodeBase> childNode = nullptr)
             : childNode(std::move(childNode)), baseType(baseType) {}
 
@@ -119,6 +121,8 @@ public:
 
     CTypeNodePtr getTypeTree() const { return typeTree; }
 
+    size_t getSize() { return typeTree->getSize(); }
+
 protected:
     CTypeNodePtr typeTree;
     bool definedType;
@@ -131,6 +135,8 @@ protected:
 class SimpleTypeNode : public CTypeNodeBase {
 public:
     BaseType getNodeType() override { return baseType; }
+
+    size_t getSize() override;
 
     explicit SimpleTypeNode(BaseType type) : CTypeNodeBase(type) {}
 };
@@ -147,6 +153,10 @@ public:
     BaseType getReturnType() {
         return childNode->getNodeType();
     }
+
+    size_t getSize() override { return 0; }
+
+    const vector<CTypeNodePtr> &getParamList() { return paramList; }
 
     explicit FunctionTypeNode(const CType &returnType)
             : CTypeNodeBase(BaseType::Function, returnType.getTypeTree()) {}

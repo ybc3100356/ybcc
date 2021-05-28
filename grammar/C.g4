@@ -8,13 +8,23 @@ primaryExpression
     |   '(' expression ')'
     ;
 
+constant
+    :   IntegerConstant
+    |   FloatingConstant
+    //|   EnumerationConstant
+    |   CharacterConstant
+    ;
+
 postfixExpression
     :
     primaryExpression
-//    ('[' expression ']'
-//    | '(' argumentExpressionList? ')'
-//    | postfixOperator
-//    )*
+    (
+//    '[' expression ']'
+//    |
+    '(' argumentExpressionList? ')'
+//    |
+//    postfixOperator
+    )*
     ;
 
 //postfixOperator
@@ -22,9 +32,9 @@ postfixExpression
 //    |   '--'
 //    ;
 //
-//argumentExpressionList
-//    :   assignmentExpression (',' assignmentExpression)*
-//    ;
+argumentExpressionList
+    :   assignmentExpression (',' assignmentExpression)*
+    ;
 
 unaryExpression
     :
@@ -131,8 +141,11 @@ assignmentOperator
     :   '=' | '*=' | '/=' | '%=' | '+=' | '-=' | '<<=' | '>>=' | '&=' | '^=' | '|='
     ;
 
+//expression
+//    :   assignmentExpression (',' assignmentExpression)*
+//    ;
 expression
-    :   assignmentExpression (',' assignmentExpression)*
+    :   DigitSequence
     ;
 
 constantExpression
@@ -234,20 +247,21 @@ designator
     |   '.' Identifier
     ;
 
-// statement
 statement
-    :   labeledStatement
-    |   compoundStatement
-    |   expressionStatement
-    |   selectionStatement
-    |   iterationStatement
-    |   jumpStatement
-    ;
-
-labeledStatement
-    :   Identifier ':' statement
-    |   'case' constantExpression ':' statement
-    |   'default' ':' statement
+//    : Identifier ':' statement                                  #labelStmt
+//    |   'case' constantExpression ':' statement                 #caseStmt
+//    |   'default' ':' statement                                 #defaultStmt
+    :   compoundStatement                                       #block
+    |   expression? ';'                                         #expStmt
+//    |   'if' '(' expression ')' statement ('else' statement)?   #ifStmt
+//    |   'switch' '(' expression ')' statement                   #switchStmt
+//    |   'while' '(' expression ')' statement                    #whileLoop
+//    |   'do' statement 'while' '(' expression ')' ';'           #doWhile
+//    |   'for' '(' forCondition ')' statement                    #forLoop
+//    |   'continue' ';'                                          #continueStmt
+//    |   'break' ';'                                             #breakStmt
+    |   'return' expression? ';'                                #returnStmt
+//    |   'goto' Identifier ';'                                   #jumpStmt
     ;
 
 compoundStatement
@@ -259,35 +273,12 @@ blockItem
     |   declaration
     ;
 
-expressionStatement
-    :   expression? ';'
-    ;
-
-selectionStatement
-    :   'if' '(' expression ')' statement ('else' statement)?
-    |   'switch' '(' expression ')' statement
-    ;
-
-iterationStatement
-    :   'while' '(' expression ')' statement
-    |   'do' statement 'while' '(' expression ')' ';'
-    |   'for' '(' forCondition ')' statement
-    ;
-
 forCondition
 	:   (declaration | expression? ';' ) forExpression? ';' forExpression?
 	;
 
 forExpression
     :   assignmentExpression (',' assignmentExpression)*
-    ;
-
-jumpStatement
-    :   ('goto' Identifier
-    |   'continue'
-    |   'break'
-    |   'return' expression?
-    )';'
     ;
 
 // program file
@@ -306,7 +297,7 @@ externalDeclaration
     ;
 
 functionDefinition
-    :   declarationSpecifiers? declarator '(' parameterTypeList? ')'compoundStatement
+    :   declarationSpecifiers? declarator '(' parameterTypeList? ')' compoundStatement
     ;
 
 Auto : 'auto';
@@ -445,12 +436,6 @@ HexQuad
     :   HexadecimalDigit HexadecimalDigit HexadecimalDigit HexadecimalDigit
     ;
 
-constant
-    :   IntegerConstant
-    |   FloatingConstant
-    //|   EnumerationConstant
-    |   CharacterConstant
-    ;
 
 fragment
 IntegerConstant

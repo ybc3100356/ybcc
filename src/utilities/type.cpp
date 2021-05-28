@@ -102,6 +102,35 @@ static const string TypeStrings[] = {
         [(size_t) BaseType::Function] = "Function",
 };
 
+static const size_t TypeSize[] = {
+        [(size_t) BaseType::Error] = 0,
+        [(size_t) BaseType::Void] = 0,
+        [(size_t) BaseType::SChar] = 1,
+        [(size_t) BaseType::UChar] = 1,
+        [(size_t) BaseType::SShort] = 2,
+        [(size_t) BaseType::UShort] = 2,
+        [(size_t) BaseType::SInt] = 4,
+        [(size_t) BaseType::UInt] = 4,
+        [(size_t) BaseType::SLong] = 4,
+        [(size_t) BaseType::ULong] = 4,
+        [(size_t) BaseType::SLongLong] = 8,
+        [(size_t) BaseType::ULongLong] = 8,
+        [(size_t) BaseType::Float] = 4,
+        [(size_t) BaseType::Double] = 8,
+        [(size_t) BaseType::LongDouble] = 8,
+        [(size_t) BaseType::Bool] = 1,
+        [(size_t) BaseType::Struct] = 0,
+        [(size_t) BaseType::Union] = 0,
+        [(size_t) BaseType::Enum] = 0,
+        [(size_t) BaseType::Pointer] = 4,
+        [(size_t) BaseType::Array] = 0,
+        [(size_t) BaseType::Function] = 0,
+};
+
 const string &getTypeStr(BaseType type) {
     return TypeStrings[(size_t) type];
+}
+
+size_t SimpleTypeNode::getSize() {
+    return TypeSize[(size_t) baseType];
 }

@@ -6,6 +6,7 @@
 
 #include "utilities/SymTab.h"
 #include "AST/DeclarationVisitor.h"
+#include "CodeGen/CodeGenVisitor.h"
 #include <vector>
 #include <stdexcept>
 
@@ -21,18 +22,20 @@ void preprocess() {
 }
 
 int main(int argc, const char *argv[]) {
-    std::ifstream src_file_stream("../test/src/test.c");
-//    string src_file_stream("#include \"stdio.h\"\n"
-//                           "int main(){}"
-//                           "int a(int x,...){}");
+    if (argc != 3) {
+        std::cout << "usage: mycc <c source file> <asm file>" << std::endl;
+        return 0;
+    }
+    std::ifstream src_file_stream(argv[1]);
     ANTLRInputStream input(src_file_stream);
     CLexer lexer(&input);
     CommonTokenStream tokens(&lexer);
     CParser parser(&tokens);
     tree::ParseTree *tree = parser.compilationUnit();
 
-    DeclarationVisitor declarationVisitor;
     try {
+        // declarations
+        DeclarationVisitor declarationVisitor;
         declarationVisitor.visit(tree);
         std::cout << "symbol table:" << std::endl;
         for (auto &entry : SymTab::getInstance().getEntries()) {
@@ -49,6 +52,12 @@ int main(int argc, const char *argv[]) {
             std::cout << std::endl;
         }
 
+        CodeGenVisitor codeGenVisitor;
+        string asm_file = codeGenVisitor.visit(tree).as<string>();
+        std::cout << asm_file << std::endl;
+        std::ofstream output_stream(argv[2]);
+        output_stream << asm_file;
+        output_stream.close();
     }
     catch (std::exception &e) {
         std::cerr << e.what() << std::endl;
