@@ -40,71 +40,74 @@ antlrcpp::Any CodeGenVisitor::visitUnaryExpression(CParser::UnaryExpressionConte
     return ExpType::UNDEF;
 }
 
-antlrcpp::Any CodeGenVisitor::visitAdditiveExpression(CParser::AdditiveExpressionContext *ctx) {
-    auto mulExps = ctx->multiplicativeExpression();
-    auto addOps = ctx->additiveOperator();
-    visit(mulExps[0]);
-    if (!addOps.empty()) {
+
+template<typename T1, typename T2>
+antlrcpp::Any CodeGenVisitor::genBinaryExpression(vector<T1 *> exps, vector<T2 *> ops) {
+    visit(exps[0]);
+    if (!ops.empty()) {
         popReg("t0");
         pushReg("s0");
         mov("s0", "t0");
-        for (int i = 0; i < addOps.size(); i++) {
-            if (addOps[i]->Plus()) {
-                visit(mulExps[i + 1]);
-                popReg("t0");
-                rType3("add", "s0", "s0", "t0");
-            } else if (addOps[i]->Minus()) {
-                visit(mulExps[i + 1]);
-                popReg("t0");
-                rType3("sub", "s0", "s0", "t0");
-            } else {
-                assert(false);
-            }
+        for (int i = 0; i < ops.size(); i++) {
+            visit(exps[i + 1]);
+            popReg("t0");
+            genBinaryExpressionAsm(
+                    dynamic_cast<tree::TerminalNode *>(ops[i]->children.front())->getSymbol()->getType());
         }
         mov("v0", "s0");
         popReg("s0");
         pushReg("v0");
         return ExpType::INT;
     }
+    return ExpType::UNDEF;
+}
+
+void CodeGenVisitor::genBinaryExpressionAsm(size_t tokenType) {
+    switch (tokenType) {
+        case CLexer::Plus:
+            rType3("add", "s0", "s0", "t0");
+            break;
+        case CLexer::Minus:
+            rType3("sub", "s0", "s0", "t0");
+            break;
+        case CLexer::Star:
+            rType2("mult", "s0", "t0");
+            rType1("mflo", "s0");
+            break;
+        case CLexer::Div:
+            rType2("div", "s0", "t0");
+            rType1("mflo", "s0");
+            break;
+        case CLexer::Mod:
+            rType2("div", "s0", "t0");
+            rType1("mfhi", "s0");
+            break;
+        case CLexer::LeftShift:
+            rType3("sllv", "s0", "s0", "t0");
+            break;
+        case CLexer::RightShift:
+            rType3("srlv", "s0", "s0", "t0");
+            break;
+        default:
+            std::cerr << "undefined symbol for binary expression" << std::endl;
+            assert(false);
+    }
+};
+
+antlrcpp::Any CodeGenVisitor::visitAdditiveExpression(CParser::AdditiveExpressionContext *ctx) {
+    genBinaryExpression(ctx->multiplicativeExpression(), ctx->additiveOperator());
     return ExpType::UNDEF;
 }
 
 antlrcpp::Any CodeGenVisitor::visitMultiplicativeExpression(CParser::MultiplicativeExpressionContext *ctx) {
-    auto casExps = ctx->castExpression();
-    auto mulOps = ctx->multiplicativeOperator();
-    visit(casExps[0]);
-    if (!mulOps.empty()) {
-        popReg("t0");
-        pushReg("s0");
-        mov("s0", "t0");
-        for (int i = 0; i < mulOps.size(); i++) {
-            if (mulOps[i]->Star()) {
-                visit(casExps[i + 1]);
-                popReg("t0");
-                rType2("mult", "s0", "t0");
-                rType1("mflo", "s0");
-            } else if (mulOps[i]->Div()) {
-                visit(casExps[i + 1]);
-                popReg("t0");
-                rType2("div", "s0", "t0");
-                rType1("mflo", "s0");
-            } else if (mulOps[i]->Mod()) {
-                visit(casExps[i + 1]);
-                popReg("t0");
-                rType2("div", "s0", "t0");
-                rType1("mfhi", "s0");
-            } else {
-                assert(false);
-            }
-        }
-        mov("v0", "s0");
-        popReg("s0");
-        pushReg("v0");
-        return ExpType::INT;
-    }
+    genBinaryExpression(ctx->castExpression(), ctx->multiplicativeOperator());
     return ExpType::UNDEF;
 }
 
+antlrcpp::Any CodeGenVisitor::visitShiftExpression(CParser::ShiftExpressionContext *ctx) {
+    genBinaryExpression(ctx->additiveExpression(), ctx->shiftOperator());
+    return ExpType::UNDEF;
+}
 
 antlrcpp::Any CodeGenVisitor::visitCompilationUnit(CParser::CompilationUnitContext *ctx) {
     _data << ".data\n";

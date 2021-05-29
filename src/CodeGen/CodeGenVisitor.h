@@ -21,6 +21,7 @@ using std::string;
 using std::to_string;
 using strings = vector<string>;
 using std::ostringstream;
+using TokenType = size_t;
 
 class CodeGenVisitor : public CBaseVisitor {
     ostringstream _code;
@@ -35,8 +36,15 @@ public:
     // expression
     antlrcpp::Any visitConstant(CParser::ConstantContext *ctx) override;
 
+    antlrcpp::Any visitMultiplicativeExpression(CParser::MultiplicativeExpressionContext *ctx) override;
+
+    antlrcpp::Any visitAdditiveExpression(CParser::AdditiveExpressionContext *ctx) override;
+
     antlrcpp::Any visitUnaryExpression(CParser::UnaryExpressionContext *ctx) override;
 
+    antlrcpp::Any visitShiftExpression(CParser::ShiftExpressionContext *ctx) override;
+
+//    antlrcpp::Any visitRelationalExpression(CParser::RelationalExpressionContext *ctx) override;
 
     // statement
     //    antlrcpp::Any visitExpStmt(CParser::ExpStmtContext *ctx) override;
@@ -50,9 +58,6 @@ public:
 
     antlrcpp::Any visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx) override;
 
-    antlrcpp::Any visitMultiplicativeExpression(CParser::MultiplicativeExpressionContext *ctx) override;
-
-    antlrcpp::Any visitAdditiveExpression(CParser::AdditiveExpressionContext *ctx) override;
 
 private:
 
@@ -106,6 +111,10 @@ private:
         INT, LEFT, RIGHT, PTR, ARR, UNDEF
     };
 
+    void genBinaryExpressionAsm(size_t tokenType);
+
+    template<typename T1, typename T2>
+    antlrcpp::Any genBinaryExpression(vector<T1 *> exps, vector<T2 *> ops);
 };
 
 
