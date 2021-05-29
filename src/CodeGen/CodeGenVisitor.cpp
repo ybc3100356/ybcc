@@ -105,7 +105,6 @@ antlrcpp::Any CodeGenVisitor::visitFunctionDefinition(CParser::FunctionDefinitio
             varSize += entry.second.type.getTypeTree()->getSize();
         }
     }
-    std::cout << "varSize:" << -1 * (int) varSize << "\n";
     iType("addiu", "sp", "s8", -1 * (int) varSize);
 
     // Calling convection: a0-a3, more on stack
