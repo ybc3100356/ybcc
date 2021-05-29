@@ -28,17 +28,15 @@ assert() {
 
 test() {
   in=$1
-  ans=$(
-    echo $in >./out/tmp.c
-    gcc ./out/tmp.c -o ./out/tmp
-    ./out/tmp
-    echo $? &
-  )
+  echo $in >./out/tmp_gcc.c
+  gcc ./out/tmp_gcc.c -o ./out/tmp_gcc
+  ./out/tmp_gcc
+  ans=$?
 
-  echo $in | $COMPILER >"./assembly/a.s"
-  ./dockercross-mips bash -c "\$CC ./assembly/a.s -o ./out/a.out; qemu-mips ./out/a.out; echo \$?" >./tmp_out &
+  echo $in | $COMPILER >"./assembly/tmp_mycc.s"
+  ./dockercross-mips bash -c "\$CC ./assembly/tmp_mycc.s -o ./out/tmp_mycc; qemu-mips ./out/tmp_mycc; echo \$?" >./out/tmp_res &
   wait
-  res=$(cat ./tmp_out)
+  res=$(cat ./out/tmp_res)
   if [ $res -eq $ans ]; then
     echo "OK!  Result: $res, Ans: $ans"
   else
@@ -46,6 +44,7 @@ test() {
     exit 1
   fi
 }
+set -f
 
 #test 'int main() { return 123; }'
 #test 'int main() { return 0; }'
@@ -59,15 +58,15 @@ test() {
 #test 'int main() { return 3 - 4; }'
 #test 'int main() { return 3 + 2 + + 4; }'
 #test 'int main() { return 3 + - 4; }'
-
-test 'int main() {
-    return -(1 + !12 + ~3) - 2 + 4 - (-5);
-}'
-
-#assert 0 'int main() { return 0; }'
-#assert 123 'int main() { return 123; }'
-#assert -2 'int main() { return -2; }'
 #
-#assert -2 'int main() { return -+-2; }'
-#assert -2 'int main() { return -2; }'
-#assert -2 'int main() { return -2; }'
+#test 'int main() { return -(1 + !12 + ~3) - 2 + 4 - (-5);}'
+
+test 'int main() { return 1 * 1; }'
+test 'int main() { return 3 * 9; }'
+test 'int main() { return 2 * -2; }'
+test 'int main() { return 3 / 1; }'
+test 'int main() { return 9 / 3; }'
+test 'int main() { return 9 % 3; }'
+test 'int main() { return 9 % 4; }'
+test 'int main() { return 3 + 2 * -2 - 1; }'
+test 'int main() { return -123 / -43 -(!3 - + ~2) * -2 % 6 - 1; }'

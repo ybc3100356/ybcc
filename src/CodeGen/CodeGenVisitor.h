@@ -29,6 +29,33 @@ class CodeGenVisitor : public CBaseVisitor {
     size_t blockDep;
     size_t labelCount;
 
+public:
+    CodeGenVisitor() : blockDep(0), labelCount(0), curFunc(), _code(), _data() {}
+
+    // expression
+    antlrcpp::Any visitConstant(CParser::ConstantContext *ctx) override;
+
+    antlrcpp::Any visitUnaryExpression(CParser::UnaryExpressionContext *ctx) override;
+
+
+    // statement
+    //    antlrcpp::Any visitExpStmt(CParser::ExpStmtContext *ctx) override;
+
+    antlrcpp::Any visitReturnStmt(CParser::ReturnStmtContext *ctx) override;
+
+    antlrcpp::Any visitCompoundStatement(CParser::CompoundStatementContext *ctx) override;
+
+    // program file
+    antlrcpp::Any visitCompilationUnit(CParser::CompilationUnitContext *ctx) override;
+
+    antlrcpp::Any visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx) override;
+
+    antlrcpp::Any visitMultiplicativeExpression(CParser::MultiplicativeExpressionContext *ctx) override;
+
+    antlrcpp::Any visitAdditiveExpression(CParser::AdditiveExpressionContext *ctx) override;
+
+private:
+
     inline void li(const string &reg, int imm) { _code << "\tli $" + reg + ", " + to_string(imm) + "\n"; }
 
     inline void mov(const string &reg0, const string &reg1) { iType("addiu", reg0, reg1, 0); }
@@ -47,6 +74,10 @@ class CodeGenVisitor : public CBaseVisitor {
 
     inline void rType2(const string &op, const string &rs, const string &rt) {
         _code << "\t" + op + " $" + rs + ", $" + rt + "\n";
+    }
+
+    inline void rType1(const string &op, const string &reg) {
+        _code << "\t" + op + " $" + reg + "\n";
     }
 
     inline void pushReg(const string &reg) {
@@ -74,32 +105,6 @@ class CodeGenVisitor : public CBaseVisitor {
     enum class ExpType {
         INT, LEFT, RIGHT, PTR, ARR, UNDEF
     };
-
-public:
-    CodeGenVisitor() : blockDep(0), labelCount(0), curFunc(), _code(), _data() {}
-
-    // expression
-    antlrcpp::Any visitConstant(CParser::ConstantContext *ctx) override;
-
-    antlrcpp::Any visitUnaryExpression(CParser::UnaryExpressionContext *ctx) override;
-
-
-    // statement
-    //    antlrcpp::Any visitExpStmt(CParser::ExpStmtContext *ctx) override;
-
-    antlrcpp::Any visitReturnStmt(CParser::ReturnStmtContext *ctx) override;
-
-    antlrcpp::Any visitCompoundStatement(CParser::CompoundStatementContext *ctx) override;
-
-    // program file
-    antlrcpp::Any visitCompilationUnit(CParser::CompilationUnitContext *ctx) override;
-
-    antlrcpp::Any visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx) override;
-
-//    antlrcpp::Any visitMultiplicativeExpression(CParser::MultiplicativeExpressionContext *ctx);
-
-    antlrcpp::Any visitAdditiveExpression(CParser::AdditiveExpressionContext *ctx) override;
-
 
 };
 

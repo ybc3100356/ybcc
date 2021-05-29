@@ -41,7 +41,6 @@ antlrcpp::Any CodeGenVisitor::visitUnaryExpression(CParser::UnaryExpressionConte
 }
 
 antlrcpp::Any CodeGenVisitor::visitAdditiveExpression(CParser::AdditiveExpressionContext *ctx) {
-    comment("====add====");
     auto mulExps = ctx->multiplicativeExpression();
     auto addOps = ctx->additiveOperator();
     visit(mulExps[0]);
@@ -65,16 +64,47 @@ antlrcpp::Any CodeGenVisitor::visitAdditiveExpression(CParser::AdditiveExpressio
         mov("v0", "s0");
         popReg("s0");
         pushReg("v0");
-        comment("===end add===");
         return ExpType::INT;
     }
-    comment("===end add===");
     return ExpType::UNDEF;
 }
 
-//antlrcpp::Any CodeGenVisitor::visitMultiplicativeExpression(CParser::MultiplicativeExpressionContext *ctx) {
-//    return CBaseVisitor::visitMultiplicativeExpression(ctx);
-//}
+antlrcpp::Any CodeGenVisitor::visitMultiplicativeExpression(CParser::MultiplicativeExpressionContext *ctx) {
+    auto casExps = ctx->castExpression();
+    auto mulOps = ctx->multiplicativeOperator();
+    visit(casExps[0]);
+    if (!mulOps.empty()) {
+        popReg("t0");
+        pushReg("s0");
+        mov("s0", "t0");
+        for (int i = 0; i < mulOps.size(); i++) {
+            if (mulOps[i]->Star()) {
+                visit(casExps[i + 1]);
+                popReg("t0");
+                rType2("mult", "s0", "t0");
+                rType1("mflo", "s0");
+            } else if (mulOps[i]->Div()) {
+                visit(casExps[i + 1]);
+                popReg("t0");
+                rType2("div", "s0", "t0");
+                rType1("mflo", "s0");
+            } else if (mulOps[i]->Mod()) {
+                visit(casExps[i + 1]);
+                popReg("t0");
+                rType2("div", "s0", "t0");
+                rType1("mfhi", "s0");
+            } else {
+                assert(false);
+            }
+        }
+        mov("v0", "s0");
+        popReg("s0");
+        pushReg("v0");
+        return ExpType::INT;
+    }
+    return ExpType::UNDEF;
+}
+
 
 antlrcpp::Any CodeGenVisitor::visitCompilationUnit(CParser::CompilationUnitContext *ctx) {
     _data << ".data\n";
