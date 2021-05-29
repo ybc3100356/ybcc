@@ -28,6 +28,7 @@ assert() {
 
 test() {
   in=$1
+  echo $in
   echo $in >./out/tmp_gcc.c
   gcc ./out/tmp_gcc.c -o ./out/tmp_gcc
   ./out/tmp_gcc
@@ -60,13 +61,46 @@ set -f
 #test 'int main() { return 3 + - 4; }'
 #
 #test 'int main() { return -(1 + !12 + ~3) - 2 + 4 - (-5);}'
+#
+#test 'int main() { return 1 * 1; }'
+#test 'int main() { return 3 * 9; }'
+#test 'int main() { return 2 * -2; }'
+#test 'int main() { return 3 / 1; }'
+#test 'int main() { return 9 / 3; }'
+#test 'int main() { return 9 % 3; }'
+#test 'int main() { return 9 % 4; }'
+#test 'int main() { return 3 + 2 * -2 - 1; }'
+#
+#test 'int main() { return -123 / -43 -(!3 - + ~2) * -2 % 6 - 1; }'
+#
+#test 'int main() { return 1 << 2; }'
+#test 'int main() { return 4 << 3; }'
+#test 'int main() { return 10 >> 5; }'
+#test 'int main() { return 10 >> 0; }'
+#
+#test 'int main() { return -123 >> 2 / -43 << 2 + 2 << - ( 3 * -(!3 - + ~2) * -2 % 6 - 1); }'
+#test 'int main() { return 0 == 0; }'
+#test 'int main() { return 1 == 1; }'
+#test 'int main() { return 123 == 321; }'
+#test 'int main() { return 11 != 22; }'
+#test 'int main() { return 14 != 14; }'
+#test 'int main() { return 1 == 0 == 1; }'
+#
+#test 'int main() { return 0 > 0; }'
+#test 'int main() { return 1 >= 1; }'
+#test 'int main() { return 1 >= 2; }'
+#test 'int main() { return 2 >= 1; }'
+#test 'int main() { return 123 <= 321; }'
+#test 'int main() { return 11 < 22; }'
+#test 'int main() { return 14 < 14; }'
+#test 'int main() { return 1 > 0 == 1; }'
+#
+#test 'int main() { return 1 != 0 + 2 < 1 + 1 == 2 == 1 == -123 >> 2 / -43 << 2 + 2 << - ( 3 * -(!3 - + ~2) * -2 % 6 - 1); }'
+#test 'int main() { return 111 & 2; }'
+#test 'int main() { return 123 & 456 | 675; }'
+#test 'int main() { return 213 | 123 | 280; }'
+#test 'int main() { return 110 ^ 293; }'
+#test 'int main() { return 110 ^ +393 <= 321 / -43 -(!3 - + ~2) * -2 % 6 - 1; }'
+#test 'int main() { return ~1567810 ^ ~393351 + ~3211235 / -43 -(!3 - + ~2) * -2 % 6 - 1; }'
 
-test 'int main() { return 1 * 1; }'
-test 'int main() { return 3 * 9; }'
-test 'int main() { return 2 * -2; }'
-test 'int main() { return 3 / 1; }'
-test 'int main() { return 9 / 3; }'
-test 'int main() { return 9 % 3; }'
-test 'int main() { return 9 % 4; }'
-test 'int main() { return 3 + 2 * -2 - 1; }'
-test 'int main() { return -123 / -43 -(!3 - + ~2) * -2 % 6 - 1; }'
+echo "Well done!"

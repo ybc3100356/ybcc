@@ -107,24 +107,31 @@ equalityOperator
     ;
 
 andExpression
-    :   equalityExpression ('&' equalityExpression)*
+    :   equalityExpression (andOperator equalityExpression)*
     ;
+
+andOperator : '&';
 
 exclusiveOrExpression
-    :   andExpression ('^' andExpression)*
+    :   andExpression (exclusiveOrOperator andExpression)*
     ;
+
+exclusiveOrOperator : '^';
 
 inclusiveOrExpression
-    :   exclusiveOrExpression ('|' exclusiveOrExpression)*
+    :   exclusiveOrExpression (inclusiveOrOperator exclusiveOrExpression)*
     ;
+inclusiveOrOperator : '|';
 
 logicalAndExpression
-    :   inclusiveOrExpression ('&&' inclusiveOrExpression)*
+    :   inclusiveOrExpression (logicalAndOperator inclusiveOrExpression)*
     ;
+logicalAndOperator : '&&';
 
 logicalOrExpression
-    :   logicalAndExpression ('||' logicalAndExpression)*
+    :   logicalAndExpression (logicalOrOperator logicalAndExpression)*
     ;
+logicalOrOperator : '||';
 
 conditionalExpression
     :   logicalOrExpression ('?' expression ':' conditionalExpression)?

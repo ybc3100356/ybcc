@@ -51,8 +51,15 @@ antlrcpp::Any CodeGenVisitor::genBinaryExpression(vector<T1 *> exps, vector<T2 *
         for (int i = 0; i < ops.size(); i++) {
             visit(exps[i + 1]);
             popReg("t0");
-            genBinaryExpressionAsm(
-                    dynamic_cast<tree::TerminalNode *>(ops[i]->children.front())->getSymbol()->getType());
+            if (!ops[i]->children.empty()) {
+                genBinaryExpressionAsm(
+                        dynamic_cast<tree::TerminalNode *>(ops[i]->children.front())->getSymbol()->getType()
+                );
+            } else {
+                genBinaryExpressionAsm(
+                        dynamic_cast<tree::TerminalNode *>(ops[i]->children.front())->getSymbol()->getType()
+                );
+            }
         }
         mov("v0", "s0");
         popReg("s0");
@@ -88,6 +95,40 @@ void CodeGenVisitor::genBinaryExpressionAsm(size_t tokenType) {
         case CLexer::RightShift:
             rType3("srlv", "s0", "s0", "t0");
             break;
+        case CLexer::Less:
+            rType3("slt", "s0", "s0", "t0");
+            break;
+        case CLexer::Greater:
+            rType3("sgt", "s0", "s0", "t0");
+            break;
+        case CLexer::LessEqual:
+            rType3("sle", "s0", "s0", "t0");
+            break;
+        case CLexer::GreaterEqual:
+            rType3("sge", "s0", "s0", "t0");
+            break;
+        case CLexer::Equal:
+            rType3("seq", "s0", "t0", "s0");
+            break;
+        case CLexer::NotEqual:
+            rType3("sne", "s0", "t0", "s0");
+            break;
+        case CLexer::And:   // &
+            rType3("and", "s0", "s0", "t0");
+            break;
+        case CLexer::Or:    // |
+            rType3("or", "s0", "s0", "t0");
+            break;
+        case CLexer::Caret: // ^
+            rType3("xor", "s0", "s0", "t0");
+            break;
+//        case CLexer::OrOr:  // ||
+//            rType3("sne", "s0", "s0", "$0");
+//            rType3("sne", "s0", "s0", "t0");
+//            break;
+//        case CLexer::AndAnd:// &&
+//            rType3("sne", "s0", "s0", "t0");
+//            break;
         default:
             std::cerr << "undefined symbol for binary expression" << std::endl;
             assert(false);
@@ -108,6 +149,41 @@ antlrcpp::Any CodeGenVisitor::visitShiftExpression(CParser::ShiftExpressionConte
     genBinaryExpression(ctx->additiveExpression(), ctx->shiftOperator());
     return ExpType::UNDEF;
 }
+
+antlrcpp::Any CodeGenVisitor::visitRelationalExpression(CParser::RelationalExpressionContext *ctx) {
+    genBinaryExpression(ctx->shiftExpression(), ctx->relationalOperator());
+    return ExpType::UNDEF;
+}
+
+antlrcpp::Any CodeGenVisitor::visitEqualityExpression(CParser::EqualityExpressionContext *ctx) {
+    genBinaryExpression(ctx->relationalExpression(), ctx->equalityOperator());
+    return ExpType::UNDEF;
+}
+
+antlrcpp::Any CodeGenVisitor::visitAndExpression(CParser::AndExpressionContext *ctx) {
+    genBinaryExpression(ctx->equalityExpression(), ctx->andOperator());
+    return ExpType::UNDEF;
+}
+
+antlrcpp::Any CodeGenVisitor::visitExclusiveOrExpression(CParser::ExclusiveOrExpressionContext *ctx) {
+    genBinaryExpression(ctx->andExpression(), ctx->exclusiveOrOperator());
+    return ExpType::UNDEF;
+}
+
+antlrcpp::Any CodeGenVisitor::visitInclusiveOrExpression(CParser::InclusiveOrExpressionContext *ctx) {
+    genBinaryExpression(ctx->exclusiveOrExpression(), ctx->inclusiveOrOperator());
+    return ExpType::UNDEF;
+}
+
+//antlrcpp::Any CodeGenVisitor::visitLogicalAndExpression(CParser::LogicalAndExpressionContext *ctx) {
+//    genBinaryExpression(ctx->inclusiveOrExpression(), ctx->logicalAndOperator());
+//    return ExpType::UNDEF;
+//}
+//
+//antlrcpp::Any CodeGenVisitor::visitLogicalOrExpression(CParser::LogicalOrExpressionContext *ctx) {
+//    genBinaryExpression(ctx->logicalAndExpression(), ctx->logicalOrOperator());
+//    return ExpType::UNDEF;
+//}
 
 antlrcpp::Any CodeGenVisitor::visitCompilationUnit(CParser::CompilationUnitContext *ctx) {
     _data << ".data\n";

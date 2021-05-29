@@ -44,7 +44,19 @@ public:
 
     antlrcpp::Any visitShiftExpression(CParser::ShiftExpressionContext *ctx) override;
 
-//    antlrcpp::Any visitRelationalExpression(CParser::RelationalExpressionContext *ctx) override;
+    antlrcpp::Any visitRelationalExpression(CParser::RelationalExpressionContext *ctx) override;
+
+    antlrcpp::Any visitEqualityExpression(CParser::EqualityExpressionContext *ctx) override;
+
+    antlrcpp::Any visitAndExpression(CParser::AndExpressionContext *ctx) override;
+
+    antlrcpp::Any visitExclusiveOrExpression(CParser::ExclusiveOrExpressionContext *ctx) override;
+
+    antlrcpp::Any visitInclusiveOrExpression(CParser::InclusiveOrExpressionContext *ctx) override;
+
+//    antlrcpp::Any visitLogicalAndExpression(CParser::LogicalAndExpressionContext *ctx) override;
+
+//    antlrcpp::Any visitLogicalOrExpression(CParser::LogicalOrExpressionContext *ctx) override;
 
     // statement
     //    antlrcpp::Any visitExpStmt(CParser::ExpStmtContext *ctx) override;
@@ -110,6 +122,7 @@ private:
     enum class ExpType {
         INT, LEFT, RIGHT, PTR, ARR, UNDEF
     };
+
 
     void genBinaryExpressionAsm(size_t tokenType);
 
