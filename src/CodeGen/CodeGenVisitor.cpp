@@ -40,7 +40,6 @@ antlrcpp::Any CodeGenVisitor::visitUnaryExpression(CParser::UnaryExpressionConte
     return ExpType::UNDEF;
 }
 
-
 template<typename T1, typename T2>
 antlrcpp::Any CodeGenVisitor::genBinaryExpression(vector<T1 *> exps, vector<T2 *> ops) {
     visit(exps[0]);
@@ -122,13 +121,15 @@ void CodeGenVisitor::genBinaryExpressionAsm(size_t tokenType) {
         case CLexer::Caret: // ^
             rType3("xor", "s0", "s0", "t0");
             break;
-//        case CLexer::OrOr:  // ||
-//            rType3("sne", "s0", "s0", "$0");
-//            rType3("sne", "s0", "s0", "t0");
-//            break;
-//        case CLexer::AndAnd:// &&
-//            rType3("sne", "s0", "s0", "t0");
-//            break;
+        case CLexer::OrOr:  // ||
+            rType3("or", "s0", "s0", "t0");
+            iType("sne", "s0", "s0", 0);
+            break;
+        case CLexer::AndAnd:// &&
+            iType("sne", "t0", "t0", 0);
+            iType("sne", "s0", "s0", 0);
+            rType3("and", "s0", "s0", "t0");
+            break;
         default:
             std::cerr << "undefined symbol for binary expression" << std::endl;
             assert(false);
@@ -175,15 +176,15 @@ antlrcpp::Any CodeGenVisitor::visitInclusiveOrExpression(CParser::InclusiveOrExp
     return ExpType::UNDEF;
 }
 
-//antlrcpp::Any CodeGenVisitor::visitLogicalAndExpression(CParser::LogicalAndExpressionContext *ctx) {
-//    genBinaryExpression(ctx->inclusiveOrExpression(), ctx->logicalAndOperator());
-//    return ExpType::UNDEF;
-//}
-//
-//antlrcpp::Any CodeGenVisitor::visitLogicalOrExpression(CParser::LogicalOrExpressionContext *ctx) {
-//    genBinaryExpression(ctx->logicalAndExpression(), ctx->logicalOrOperator());
-//    return ExpType::UNDEF;
-//}
+antlrcpp::Any CodeGenVisitor::visitLogicalAndExpression(CParser::LogicalAndExpressionContext *ctx) {
+    genBinaryExpression(ctx->inclusiveOrExpression(), ctx->logicalAndOperator());
+    return ExpType::UNDEF;
+}
+
+antlrcpp::Any CodeGenVisitor::visitLogicalOrExpression(CParser::LogicalOrExpressionContext *ctx) {
+    genBinaryExpression(ctx->logicalAndExpression(), ctx->logicalOrOperator());
+    return ExpType::UNDEF;
+}
 
 antlrcpp::Any CodeGenVisitor::visitCompilationUnit(CParser::CompilationUnitContext *ctx) {
     _data << ".data\n";
