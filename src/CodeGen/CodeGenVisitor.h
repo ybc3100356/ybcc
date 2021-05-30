@@ -60,6 +60,8 @@ public:
 
     antlrcpp::Any visitLogicalOrExpression(CParser::LogicalOrExpressionContext *ctx) override;
 
+    antlrcpp::Any visitConditionalExpression(CParser::ConditionalExpressionContext *ctx) override;
+
     // init declaration
     antlrcpp::Any visitInitDeclarator(CParser::InitDeclaratorContext *ctx) override;
 

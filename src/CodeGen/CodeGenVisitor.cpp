@@ -179,6 +179,28 @@ antlrcpp::Any CodeGenVisitor::visitInitDeclarator(CParser::InitDeclaratorContext
     return ExpType::UNDEF;
 }
 
+antlrcpp::Any CodeGenVisitor::visitConditionalExpression(CParser::ConditionalExpressionContext *ctx) {
+    if (ctx->Question()) {
+        if (visit(ctx->logicalOrExpression()).as<ExpType>() == ExpType::LEFT) {
+            load();
+        }
+        size_t elseBranch = labelCount++;
+        size_t endBranch = labelCount++;
+        beqz("else_" + to_string(elseBranch));
+        if (visit(ctx->expression()).as<ExpType>() == ExpType::LEFT) {
+            load();
+        }
+        j("end_" + to_string(endBranch));
+        label("else_" + to_string(elseBranch));
+        if (visit(ctx->conditionalExpression()).as<ExpType>() == ExpType::LEFT) {
+            load();
+        }
+        label("end_" + to_string(endBranch));
+        return ExpType::INT;
+    } else
+        return visit(ctx->logicalOrExpression());
+}
+
 antlrcpp::Any CodeGenVisitor::visitUnaryExpression(CParser::UnaryExpressionContext *ctx) {
     ExpType expType;
     if (auto postExp = ctx->postfixExpression()) {
