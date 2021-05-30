@@ -10,18 +10,14 @@
 #include "CParser.h"
 
 #include "CBaseVisitor.h"
-#include "utilities/SymTab.h"
-#include <vector>
+#include "SymTab.h"
+#include "utilities.h"
 #include <sstream>
 
 using namespace antlrcpp;
 using namespace antlr4;
-using std::vector;
-using std::string;
-using std::to_string;
 using strings = vector<string>;
 using std::ostringstream;
-using TokenType = size_t;
 
 class CodeGenVisitor : public CBaseVisitor {
     ostringstream _code;
@@ -34,7 +30,13 @@ public:
     CodeGenVisitor() : blockDep(0), labelCount(0), curFunc(), _code(), _data() {}
 
     // expression
+    antlrcpp::Any visitPrimaryExpression(CParser::PrimaryExpressionContext *ctx) override;
+
+    antlrcpp::Any visitAssignmentExpression(CParser::AssignmentExpressionContext *ctx) override;
+
     antlrcpp::Any visitConstant(CParser::ConstantContext *ctx) override;
+
+    antlrcpp::Any visitIdentifier(CParser::IdentifierContext *ctx) override;
 
     antlrcpp::Any visitMultiplicativeExpression(CParser::MultiplicativeExpressionContext *ctx) override;
 
@@ -58,8 +60,10 @@ public:
 
     antlrcpp::Any visitLogicalOrExpression(CParser::LogicalOrExpressionContext *ctx) override;
 
+    // init declaration
+    antlrcpp::Any visitInitDeclarator(CParser::InitDeclaratorContext *ctx) override;
+
     // statement
-    //    antlrcpp::Any visitExpStmt(CParser::ExpStmtContext *ctx) override;
 
     antlrcpp::Any visitReturnStmt(CParser::ReturnStmtContext *ctx) override;
 
@@ -77,7 +81,7 @@ private:
 
     inline void mov(const string &reg0, const string &reg1) { iType("addiu", reg0, reg1, 0); }
 
-    inline void memI(const string &op, const string &rs, const string &rt, int offset) {
+    inline void memType(const string &op, const string &rs, const string &rt, int offset) {
         _code << "\t" + op + " $" + rs + ", " + to_string(offset) + "($" + rt + ")\n";
     }
 
@@ -98,36 +102,75 @@ private:
     }
 
     inline void pushReg(const string &reg) {
-        comment("push(" + reg + ")");
+        comment("push(" + reg + ")[2 lines]");
         iType("addiu", "sp", "sp", -4);
-        memI("sw", reg, "sp", 0);
+        memType("sw", reg, "sp", 0);
     }
 
     inline void popReg(const string &reg) {
-        comment("pop(" + reg + ")");
-        memI("lw", reg, "sp", 0);
+        comment("pop(" + reg + ")[2 lines]");
+        memType("lw", reg, "sp", 0);
         iType("addiu", "sp", "sp", 4);
     }
 
     inline void popReg(const string &reg0, const string &reg1) {
         comment("pop2(" + reg0 + "," + reg1 + ")");
-        memI("lw", reg0, "sp", 4);
-        memI("lw", reg1, "sp", 0);
+        memType("lw", reg0, "sp", 4);
+        memType("lw", reg1, "sp", 0);
         iType("addiu", "sp", "sp", 8);
     }
 
+    inline void pushFrameAddr(size_t k) {
+        comment("push symbol addr[3 lines]");
+        iType("addiu", "sp", "sp", -4);
+        iType("addiu", "t1", "fp", -4 - 4 * (int) k);
+        memType("sw", "t1", "sp", 0);
+    }
+
+    inline void load() {
+        comment("load symbol to stack[3 lines]");
+        memType("lw", "t1", "sp", 0);    // addr
+        memType("lw", "t1", "t1", 0);    // value
+        memType("sw", "t1", "sp", 0);    // load(to stack)
+    }
+
+    inline void store() {
+        comment("store symbol to mem[4 lines]");
+        memType("lw", "t1", "sp", 4);    // value
+        memType("lw", "t2", "sp", 0);    // addr
+        iType("addiu", "sp", "sp", 4);   //
+        memType("sw", "t1", "t2", 0);    // store(to addr)
+    }
+
+    inline void frameAddrLocal(size_t k) {
+        iType("addiu", "v0", "fp", -12 - 4 * (int) k);
+    }
+
+    inline void loadLocal(int k) {
+        assert(k >= 0);
+        memType("lw", "a0", "fp", -12 - 4 * k);
+    }
+
+    inline void storeLocal(int k) {
+        memType("sw", "a0", "fp", -12 - 4 * k);
+    }
+
+    inline void pop() {
+        comment("pop");
+        iType("addiu", "sp", "sp", 4);
+    }
 
     inline void comment(const string &comment) { _code << "\t#" + comment + "\n"; }
-
-    enum class ExpType {
-        INT, LEFT, RIGHT, PTR, ARR, UNDEF
-    };
 
 
     void genBinaryExpressionAsm(size_t tokenType);
 
     template<typename T1, typename T2>
     antlrcpp::Any genBinaryExpression(vector<T1 *> exps, vector<T2 *> ops);
+
+    enum class ExpType {
+        INT, LEFT, RIGHT, PTR, ARR, UNDEF
+    };
 };
 
 

@@ -4,8 +4,8 @@ FILE=$1
 
 if test -f $FILE; then
   #compile: .c-->.s
+  echo "write to ./assembly/a.s"
   cat $FILE | $COMPILER >"./assembly/a.s"
-  echo 1
   #test   : .s-->exe
   if [ $? -eq 0 ]; then
     if test -f "./assembly/a.s"; then

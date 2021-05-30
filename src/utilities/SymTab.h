@@ -5,40 +5,45 @@
 #ifndef MYCC_SYMTAB_H
 #define MYCC_SYMTAB_H
 
+#include <utility>
+#include "CParser.h"
+
 #include "type.h"
-#include <vector>
-#include <unordered_map>
-#include <string>
 #include "error.h"
+#include "utilities.h"
+
+using InitValueType = CParser::InitializerContext;
 
 class SymTabEntry {
 public:
-    explicit SymTabEntry(CType type) : type(type) {}
+    explicit SymTabEntry(CType type = CType(), size_t offset = 0,
+                         InitValueType *initValue = nullptr)
+            : type(std::move(type)), offset(offset), initValue(initValue) {}
 
+    InitValueType *initValue;
+    size_t offset;
     CType type;
 };
 
-using std::unordered_map;
-using std::shared_ptr;
-using std::string;
-
 class SymTab {
+    size_t _offset{};
 public:
+    unordered_map<string, SymTabEntry> entries;
+
     static SymTab &getInstance() {
         static SymTab instance;
         return instance;
     }
 
-    void add(const string &, const SymTabEntry &);
+    void add(const string &symbol, const CType &type, InitValueType *initValue = nullptr);
 
     const SymTabEntry &get(const string &);
 
-    const unordered_map<string, SymTabEntry> getEntries();
+    size_t getTotalOffset() const { return _offset; }
 
 private:
     SymTab() = default;
 
-    unordered_map<string, SymTabEntry> entries;
 
 public:
     SymTab(SymTab const &) = delete;

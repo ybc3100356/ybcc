@@ -5,18 +5,10 @@
 #ifndef MYCC_TYPE_H
 #define MYCC_TYPE_H
 
+#include "utilities.h"
 #include "CLexer.h"
-#include <utility>
-#include <vector>
-#include <memory>
-#include <map>
 
 using namespace antlrcpp;
-using std::vector;
-using std::string;
-using std::multiset;
-using std::map;
-using std::shared_ptr;
 
 enum class BaseType : size_t {
     Error = 0,
@@ -117,7 +109,7 @@ public:
             definedType(definedType) {
     }
 
-    bool is_typedef() { return definedType; }
+    bool is_typedef() const { return definedType; }
 
     CTypeNodePtr getTypeTree() const { return typeTree; }
 

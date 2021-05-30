@@ -2,11 +2,13 @@ grammar C;
 
 // expression
 primaryExpression
-    :   Identifier
+    :   identifier
     |   constant
     |   StringLiteral+
     |   '(' expression ')'
     ;
+
+identifier: Identifier;
 
 constant
     :   IntegerConstant
@@ -39,7 +41,8 @@ argumentExpressionList
 unaryExpression
     :
     prefixOperator*
-    (postfixExpression
+    (
+    postfixExpression
     |   unaryOperator unaryExpression
     )
     ;
@@ -150,7 +153,6 @@ expression
     :   assignmentExpression (',' assignmentExpression)*
     ;
 
-
 constantExpression
     :   conditionalExpression
     ;
@@ -213,7 +215,7 @@ declarator
 //  function declaration
 //  array declatation
 directDeclarator
-    :   Identifier
+    :   identifier
     ;
 
 parameterTypeList
@@ -230,12 +232,12 @@ parameterDeclaration
 
 initializer
     :   assignmentExpression
-    |   '{' initializerList ','? '}'
+//    |   '{' initializerList ','? '}'
     ;
 
-initializerList
-    :   designation? initializer (',' designation? initializer)*
-    ;
+//initializerList
+//    :   designation? initializer (',' designation? initializer)*
+//    ;
 
 designation
     :   designatorList '='
@@ -247,7 +249,7 @@ designatorList
 
 designator
     :   '[' constantExpression ']'
-    |   '.' Identifier
+    |   '.' identifier
     ;
 
 statement

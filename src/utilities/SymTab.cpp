@@ -4,12 +4,13 @@
 
 #include "SymTab.h"
 
-void SymTab::add(const string &symbol, const SymTabEntry &newEntry) {
+void SymTab::add(const string &symbol, const CType &type, InitValueType *initValue) {
     auto entry = entries.find(symbol);
     if (entry != entries.end()) {
-        throw ReDefError((string("redefinition symbol: ") + symbol).c_str());
+        throw ReDef(symbol);
     } else {
-        entries.insert({symbol, newEntry});
+        entries.insert({symbol, SymTabEntry(type, _offset, initValue)});
+        _offset += type.getTypeTree()->getSize() / 4;
     }
 }
 
@@ -18,10 +19,7 @@ const SymTabEntry &SymTab::get(const string &symbol) {
     if (entry != entries.end()) {
         return entry->second;
     } else {
-        throw UnDefError((string("undefined symbol: ") + symbol).c_str());
+        throw UnDef(symbol);
     }
 }
 
-const unordered_map<string, SymTabEntry> SymTab::getEntries() {
-    return entries;
-}

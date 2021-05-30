@@ -120,4 +120,24 @@ set -f
 #test 'int main() { return -2 < 2; }'
 #test 'int main() { return 3 > -2; }'
 
-echo "Well done!"
+#test 'int main() { int a = 0; return a; }'
+#test 'int main() { int a = 2; return a; }'
+#test 'int main() { int a = 110 ^ +393 <= 321 / -43 -(!3 - + ~2) * -2 % 6 - 1 + (0 && 0 || 0 && 0); return a;}'
+#test 'int main() { int a = 0; return a; }'
+#test 'int main() { int a = 0; ; return a; }'
+#test 'int main() { int a = 0; int b; return a; }'
+#test 'int main() { int a = 0; int b = 0; return a; }'
+#test 'int main() { int a = 2; int b = 3; return a + b; }'
+#test 'int main() { int a = 2; int b = -3; return a + b; }'
+#test 'int main() { int a = 2; int b = -3; return a + b; }'
+#test 'int main() { int a = 2; int b = -3; int c = a + b; a = a - b; b = b * c; return a + b + c; }'
+#test 'int main() { int a = 2; int b = -3; int c = a + b; a = a - b; b = -b * ~c; return !a * b + c; }'
+#test 'int main() { int a; int b; a = b = 11 ; return b * a; }'
+#test 'int main() { int a,b; a = 11; b = 12 ; return b * a; }'
+#test 'int main() { int a,b; a = b = 11 ; return b * a; }'
+#test 'int main() { int a = 7; int b = -3; int c = a + b; a = b = 17; c; a = a - b; b = -b * ~c; return !a * b + c; }'
+#test 'int main() { int a = 1; int b = 2; int c = 3; int d = -2; a = b = (c = d = 3); return a * b + c + d;}'
+#echo "Well done!"
+
+echo "Wrong case testing:"
+test 'int main() { int a = 1; int b = 2; int c = 3; int d = -2; a = b = (c = d) = 3; return a * b + c + d;}'

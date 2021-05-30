@@ -8,14 +8,14 @@
 
 antlrcpp::Any DeclarationVisitor::visitDeclaration(CParser::DeclarationContext *ctx) {
     auto type = visit(ctx->declarationSpecifiers()).as<CType>();
-    strings namelist = visit(ctx->initDeclaratorList()).as<strings>();
+    auto declarators = visit(ctx->initDeclaratorList()).as<InitDeclarators>();
     string compound_names;
-    for (auto compound_name:compound_context) {
+    for (const auto &compound_name : compound_context) {
         compound_names += compound_name + '@';
         // TODO: make sure '@' not in any name
     }
-    for (auto &name : namelist) {
-        SymTab::getInstance().add(compound_names + name, SymTabEntry(type));
+    for (auto &declarator : declarators) {
+        SymTab::getInstance().add(compound_names + declarator.first, type, declarator.second);
     }
     return nullptr;
 }
@@ -49,18 +49,26 @@ antlrcpp::Any DeclarationVisitor::visitSimpleTypeSpecifier(CParser::SimpleTypeSp
 }
 
 antlrcpp::Any DeclarationVisitor::visitInitDeclaratorList(CParser::InitDeclaratorListContext *ctx) {
-    strings s;
+    InitDeclarators s;
     for (auto &initD : ctx->initDeclarator()) {
-        auto name = visit(initD->declarator()).as<string>();
-        s.push_back(name);
-        // TODO: initializer
+        s.push_back(visit(initD).as<InitDeclarator>());
     }
     return s;
 }
 
 antlrcpp::Any DeclarationVisitor::visitInitDeclarator(CParser::InitDeclaratorContext *ctx) {
     // TODO: initializer
-    return ctx->declarator()->directDeclarator()->Identifier()->getText();
+    if (auto i = ctx->initializer()) {
+        return std::make_pair(ctx->declarator()->directDeclarator()->identifier()->getText(),
+                              visit(i).as<InitValueType *>());
+    } else {
+        return std::make_pair(ctx->declarator()->directDeclarator()->identifier()->getText(),
+                              (InitValueType *) nullptr);
+    }
+}
+
+antlrcpp::Any DeclarationVisitor::visitInitializer(CParser::InitializerContext *ctx) {
+    return ctx;
 }
 
 antlrcpp::Any DeclarationVisitor::visitTypeSpecifier(CParser::TypeSpecifierContext *ctx) {
@@ -72,7 +80,7 @@ antlrcpp::Any DeclarationVisitor::visitFunctionDefinition(CParser::FunctionDefin
     auto name = visit(ctx->declarator()).as<string>();
 //    auto paramList = visit(ctx->parameterTypeList());
     auto funcType = CType(static_cast<CTypeNodePtr>(new FunctionTypeNode(returnType)));
-    SymTab::getInstance().add(name, SymTabEntry(funcType));
+    SymTab::getInstance().add(name, funcType);
     compound_context.push_back(name);
     visit(ctx->compoundStatement());
     compound_context.pop_back();
@@ -80,18 +88,22 @@ antlrcpp::Any DeclarationVisitor::visitFunctionDefinition(CParser::FunctionDefin
 }
 
 antlrcpp::Any DeclarationVisitor::visitDeclarator(CParser::DeclaratorContext *ctx) {
-    return ctx->directDeclarator()->Identifier()->getText();
+    return ctx->directDeclarator()->identifier()->getText();
 }
 
 antlrcpp::Any DeclarationVisitor::visitDirectDeclarator(CParser::DirectDeclaratorContext *ctx) {
-    return ctx->Identifier()->getText();
+    return ctx->identifier()->getText();
 }
 
-//antlrcpp::Any DeclarationVisitor::visitCompoundStatement(CParser::CompoundStatementContext *ctx) {
-//    visitChildren(ctx);
-//}
-//
-//antlrcpp::Any DeclarationVisitor::visitBlockItem(CParser::BlockItemContext *ctx) {
-//    visitChildren(ctx);
-//}
-//
+antlrcpp::Any DeclarationVisitor::visitCompoundStatement(CParser::CompoundStatementContext *ctx) {
+    ++blockDep;
+    compound_context.push_back(to_string(blockDep));
+    auto res = visitChildren(ctx);
+    compound_context.pop_back();
+    --blockDep;
+    return res;
+}
+
+antlrcpp::Any DeclarationVisitor::visitBlockItem(CParser::BlockItemContext *ctx) {
+    return visitChildren(ctx);
+}
