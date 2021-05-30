@@ -119,7 +119,7 @@ set -f
 #test 'int main() { return -1 < 0; }'
 #test 'int main() { return -2 < 2; }'
 #test 'int main() { return 3 > -2; }'
-
+#
 #test 'int main() { int a = 0; return a; }'
 #test 'int main() { int a = 2; return a; }'
 #test 'int main() { int a = 110 ^ +393 <= 321 / -43 -(!3 - + ~2) * -2 % 6 - 1 + (0 && 0 || 0 && 0); return a;}'
@@ -137,7 +137,19 @@ set -f
 #test 'int main() { int a,b; a = b = 11 ; return b * a; }'
 #test 'int main() { int a = 7; int b = -3; int c = a + b; a = b = 17; c; a = a - b; b = -b * ~c; return !a * b + c; }'
 #test 'int main() { int a = 1; int b = 2; int c = 3; int d = -2; a = b = (c = d = 3); return a * b + c + d;}'
-#echo "Well done!"
+
+test 'int main() { int a = 0; if(0) a = 1; return a; }'
+test 'int main() { int a = 0; if(1) a = 1; return a; }'
+test 'int main() { int a = 0; if(1) a = 1; else a = 0; return a; }'
+test 'int main() { int a=1; if(a) return a+1+3; else return a-1; return a; }'
+test 'int main() { int a=0; if(a) return a+1+2; else return a-1; return a; }'
+test 'int main() { int a=0; int b=0; if(a) if(b) return 3; else return 7; return a; }'
+test 'int main() { int a=1; int b=0; if(a) if(b) return 3; else return 7; return a; }'
+test 'int main() { int a=0; int b=1; if(a) if(b) return 3; else return 7; return a; }'
+test 'int main() { int a=1; int b=1; if(a) if(b) return 3; else return 7; return a; }'
+
+echo "Well done!"
 
 echo "Wrong case testing:"
-test 'int main() { int a = 1; int b = 2; int c = 3; int d = -2; a = b = (c = d) = 3; return a * b + c + d;}'
+#test 'int main() { int a=0; if(a) return a+1+2; else return a-1; else return a + 2 * 3; return a; }'
+#test 'int main() { int a = 1; int b = 2; int c = 3; int d = -2; a = b = (c = d) = 3; return a * b + c + d;}'

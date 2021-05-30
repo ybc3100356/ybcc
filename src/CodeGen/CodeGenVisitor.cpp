@@ -63,8 +63,7 @@ antlrcpp::Any CodeGenVisitor::visitCompoundStatement(CParser::CompoundStatementC
 antlrcpp::Any CodeGenVisitor::visitReturnStmt(CParser::ReturnStmtContext *ctx) {
     // epilogue
     _code << "\t#return\n";
-    ExpType expType = visit(ctx->expression()).as<ExpType>();
-    if (expType == ExpType::LEFT) {
+    if (visit(ctx->expression()).as<ExpType>() == ExpType::LEFT) {
         load();
     }
     popReg("v0");
@@ -86,9 +85,28 @@ antlrcpp::Any CodeGenVisitor::visitReturnStmt(CParser::ReturnStmtContext *ctx) {
     return ExpType::UNDEF;
 }
 
-//antlrcpp::Any CodeGenVisitor::visitIfStmt(CParser::IfStmtContext *ctx) {
-//
-//}
+antlrcpp::Any CodeGenVisitor::visitIfStmt(CParser::IfStmtContext *ctx) {
+    if (visit(ctx->expression()).as<ExpType>() == ExpType::LEFT) {
+        load();
+    }
+    // TODO: branched return statement can be optimized
+    if (ctx->Else()) {
+        size_t elseBranch = labelCount++;
+        size_t endBranch = labelCount++;
+        beqz("else_" + to_string(elseBranch));
+        visit(ctx->statement(0));
+        j("end_" + to_string(endBranch));
+        label("else_" + to_string(elseBranch));
+        visit(ctx->statement(1));
+        label("end_" + to_string(endBranch));
+    } else {
+        size_t endBranch = labelCount++;
+        beqz("end_" + to_string(endBranch));
+        visit(ctx->statement(0));
+        label("end_" + to_string(endBranch));
+    }
+    return ExpType::UNDEF;
+}
 
 antlrcpp::Any CodeGenVisitor::visitConstant(CParser::ConstantContext *ctx) {
     comment("constant");

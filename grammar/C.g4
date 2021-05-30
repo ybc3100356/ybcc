@@ -258,7 +258,7 @@ statement
 //    |   'default' ':' statement                                 #defaultStmt
     :   compoundStatement                                       #block
     |   expression? ';'                                         #expStmt
-//    |   'if' '(' expression ')' statement ('else' statement)?   #ifStmt
+    |   'if' '(' expression ')' statement ('else' statement)?   #ifStmt
 //    |   'switch' '(' expression ')' statement                   #switchStmt
 //    |   'while' '(' expression ')' statement                    #whileLoop
 //    |   'do' statement 'while' '(' expression ')' ';'           #doWhile
