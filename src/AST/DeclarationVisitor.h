@@ -25,13 +25,13 @@ class DeclarationVisitor : public CBaseVisitor {
     size_t blockOrder = 0;
 public:
 
-    const string getCompoundContext() {
+    string getCompoundContext() {
         string compound_names;
         // TODO: make sure '@' not in any name
         for (const auto &order : blockOrderStack) {
             compound_names += to_string(order) + '@';
         }
-        return curFunc + '@'+ compound_names;
+        return curFunc + '@' + compound_names;
     }
 
     antlrcpp::Any visitIdentifier(CParser::IdentifierContext *ctx) override;
@@ -60,7 +60,15 @@ public:
 
     antlrcpp::Any visitCompoundStatement(CParser::CompoundStatementContext *ctx) override;
 
+    antlrcpp::Any visitWhileLoop(CParser::WhileLoopContext *ctx) override;
+
+    antlrcpp::Any visitDoWhile(CParser::DoWhileContext *ctx) override;
+
+    antlrcpp::Any visitForLoop(CParser::ForLoopContext *ctx) override;
+
     antlrcpp::Any visitBlockItem(CParser::BlockItemContext *ctx) override;
+
+    antlrcpp::Any visitGeneralizedCompoundStatement(CParser::BlockContext::ParseTree *ctx);
 };
 
 

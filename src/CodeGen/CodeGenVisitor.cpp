@@ -22,7 +22,7 @@ antlrcpp::Any CodeGenVisitor::visitFunctionDefinition(CParser::FunctionDefinitio
     _code << curFunc << ":\n";
     pushReg("ra");
     pushReg("s8");
-    mov("s8","sp");
+    mov("s8", "sp");
 
     // allocate local vars on stack
     size_t offsets = SymTab::getInstance().getTotalOffset();
@@ -35,11 +35,11 @@ antlrcpp::Any CodeGenVisitor::visitFunctionDefinition(CParser::FunctionDefinitio
 
     // main default: return 0
     if (curFunc == "main") {
-        mov("v0","0");
-        mov("sp","s8");
+        mov("v0", "0");
+        mov("sp", "s8");
         popReg("s8");
         popReg("ra");
-        _code <<  "\tjr $ra\n";              // ret
+        _code << "\tjr $ra\n";              // ret
     }
     return ExpType::UNDEF;
 }
@@ -53,7 +53,7 @@ antlrcpp::Any CodeGenVisitor::visitCompoundStatement(CParser::CompoundStatementC
     }
     blockOrder = blockOrderStack.back() + 1;
     blockOrderStack.pop_back();
-    comment("block " + to_string(blockOrder-1) + " end");
+    comment("block " + to_string(blockOrder - 1) + " end");
     return ExpType::UNDEF;
 }
 
@@ -64,11 +64,6 @@ antlrcpp::Any CodeGenVisitor::visitReturnStmt(CParser::ReturnStmtContext *ctx) {
         load();
     }
     popReg("v0");
-//    pushReg("v0");
-//    iType("addiu", "a0", "v0", 0);
-//    _code << "\tli $v0, 1 # syscall(1): print int\n" // print return value ($v0)
-//          << "\tsyscall\n";
-//    popReg("v0");
 
     // epilogue: deallocate an frame
     size_t offsets = SymTab::getInstance().getTotalOffset();
@@ -105,6 +100,110 @@ antlrcpp::Any CodeGenVisitor::visitIfStmt(CParser::IfStmtContext *ctx) {
     return ExpType::UNDEF;
 }
 
+antlrcpp::Any CodeGenVisitor::visitWhileLoop(CParser::WhileLoopContext *ctx) {
+    blockOrderStack.push_back(blockOrder);
+    blockOrder = 0;
+    comment("while loop begin:");
+    auto loopBegin = "loop_" + to_string(labelCount++);
+    auto breakPoint = "break_" + to_string(labelCount++);
+    auto continuePoint = "continue_" + to_string(labelCount++);
+    breakStack.push_back(breakPoint);
+    continueStack.push_back(continuePoint);
+    label(loopBegin);
+    comment("cond:");
+    if (visit(ctx->expression()).as<ExpType>() == ExpType::LEFT) {
+        load();
+    }
+    beqz(breakPoint);
+    comment("body:");
+    visit(ctx->statement());
+    label(continuePoint);
+    j(loopBegin);
+    label(breakPoint);
+    comment("while loop end");
+    blockOrder = blockOrderStack.back() + 1;
+    blockOrderStack.pop_back();
+    return ExpType::UNDEF;
+}
+
+
+antlrcpp::Any CodeGenVisitor::visitDoWhile(CParser::DoWhileContext *ctx) {
+    blockOrderStack.push_back(blockOrder);
+    blockOrder = 0;
+    comment("do while loop begin:");
+    auto breakPoint = "break_" + to_string(labelCount++);
+    auto continuePoint = "continue_" + to_string(labelCount++);
+    auto loopBegin = "loop_" + to_string(labelCount++);
+    breakStack.push_back(breakPoint);
+    continueStack.push_back(continuePoint);
+    label(loopBegin);
+    // body
+    visit(ctx->statement());
+    // cond
+    if (visit(ctx->expression()).as<ExpType>() == ExpType::LEFT) {
+        load();
+    }
+    beqz(breakPoint);
+    label(continuePoint);
+    j(loopBegin);
+    label(breakPoint);
+    breakStack.pop_back();
+    continueStack.pop_back();
+    comment("do while loop end");
+    blockOrder = blockOrderStack.back() + 1;
+    blockOrderStack.pop_back();
+    return ExpType::UNDEF;
+}
+
+antlrcpp::Any CodeGenVisitor::visitForLoop(CParser::ForLoopContext *ctx) {
+    blockOrderStack.push_back(blockOrder);
+    blockOrder = 0;
+    comment("for loop begin:");
+    auto breakPoint = "break_" + to_string(labelCount++);
+    auto continuePoint = "continue_" + to_string(labelCount++);
+    auto loopBegin = "loop_" + to_string(labelCount++);
+    breakStack.push_back(breakPoint);
+    continueStack.push_back(continuePoint);
+    if (auto exp = ctx->forCondition()->expression()) {
+        visit(exp);
+    } else {
+        visit(ctx->forCondition()->declaration());
+    }
+    label(loopBegin);
+    // cond
+    if (auto cond = ctx->forCondition()->forCondExpression()) {
+        if (visit(cond->expression()).as<ExpType>() == ExpType::LEFT) {
+            load();
+        }
+        beqz(breakPoint);
+    } else {
+        j(breakPoint);
+    }
+    // body
+    visit(ctx->statement());
+    label(continuePoint);
+    if (auto final = ctx->forCondition()->forFinalExpression()) {
+        visit(final);
+    }
+    j(loopBegin);
+    label(breakPoint);
+    breakStack.pop_back();
+    continueStack.pop_back();
+    comment("for loop end");
+    blockOrder = blockOrderStack.back() + 1;
+    blockOrderStack.pop_back();
+    return ExpType::UNDEF;
+}
+
+antlrcpp::Any CodeGenVisitor::visitContinueStmt(CParser::ContinueStmtContext *ctx) {
+    return CBaseVisitor::visitContinueStmt(ctx);
+}
+
+antlrcpp::Any CodeGenVisitor::visitBreakStmt(CParser::BreakStmtContext *ctx) {
+    return CBaseVisitor::visitBreakStmt(ctx);
+}
+
+
 antlrcpp::Any CodeGenVisitor::visitConstant(CParser::ConstantContext *ctx) {
     comment("constant");
     li("v0", atoi(ctx->IntegerConstant()->getText().c_str()));
@@ -116,7 +215,7 @@ antlrcpp::Any CodeGenVisitor::visitIdentifier(CParser::IdentifierContext *ctx) {
     auto symbol = getCompoundContext() + ctx->getText();
     auto entry = SymTab::getInstance().get(symbol, ctx->getStart()->getLine(),
                                            ctx->getStart()->getCharPositionInLine());
-    comment("push symbol addr: " + symbol + "(" + to_string(entry.line)+", " + to_string(entry.column) + ")");
+    comment("push symbol addr: " + symbol + "(" + to_string(entry.line) + ", " + to_string(entry.column) + ")");
     pushFrameAddr(entry.offset);
     return ExpType::LEFT;
 }

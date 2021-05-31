@@ -98,7 +98,7 @@ antlrcpp::Any DeclarationVisitor::visitDirectDeclarator(CParser::DirectDeclarato
     return ctx->identifier()->getText();
 }
 
-antlrcpp::Any DeclarationVisitor::visitCompoundStatement(CParser::CompoundStatementContext *ctx) {
+antlrcpp::Any DeclarationVisitor::visitGeneralizedCompoundStatement(CParser::BlockContext::ParseTree *ctx) {
     blockOrderStack.push_back(blockOrder);
     blockOrder = 0;
     auto res = visitChildren(ctx);
@@ -107,7 +107,22 @@ antlrcpp::Any DeclarationVisitor::visitCompoundStatement(CParser::CompoundStatem
     return res;
 }
 
+antlrcpp::Any DeclarationVisitor::visitCompoundStatement(CParser::CompoundStatementContext *ctx) {
+    return visitGeneralizedCompoundStatement(ctx);
+}
+
+antlrcpp::Any DeclarationVisitor::visitWhileLoop(CParser::WhileLoopContext *ctx) {
+    return visitGeneralizedCompoundStatement(ctx);
+}
+
+antlrcpp::Any DeclarationVisitor::visitDoWhile(CParser::DoWhileContext *ctx) {
+    return visitGeneralizedCompoundStatement(ctx);
+}
+
+antlrcpp::Any DeclarationVisitor::visitForLoop(CParser::ForLoopContext *ctx) {
+    return visitGeneralizedCompoundStatement(ctx);
+}
+
 antlrcpp::Any DeclarationVisitor::visitBlockItem(CParser::BlockItemContext *ctx) {
     return visitChildren(ctx);
 }
-

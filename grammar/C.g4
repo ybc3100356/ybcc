@@ -260,11 +260,11 @@ statement
     |   expression? ';'                                         #expStmt
     |   'if' '(' expression ')' statement ('else' statement)?   #ifStmt
 //    |   'switch' '(' expression ')' statement                   #switchStmt
-//    |   'while' '(' expression ')' statement                    #whileLoop
-//    |   'do' statement 'while' '(' expression ')' ';'           #doWhile
-//    |   'for' '(' forCondition ')' statement                    #forLoop
-//    |   'continue' ';'                                          #continueStmt
-//    |   'break' ';'                                             #breakStmt
+    |   'while' '(' expression ')' statement                    #whileLoop
+    |   'do' statement 'while' '(' expression ')' ';'           #doWhile
+    |   'for' '(' forCondition ')' statement                    #forLoop
+    |   'continue' ';'                                          #continueStmt
+    |   'break' ';'                                             #breakStmt
     |   'return' expression? ';'                                #returnStmt
 //    |   'goto' Identifier ';'                                   #jumpStmt
     ;
@@ -279,12 +279,12 @@ blockItem
     ;
 
 forCondition
-	:   (declaration | expression? ';' ) forExpression? ';' forExpression?
+	:   (declaration | expression? ';' ) forCondExpression? ';' forFinalExpression?
 	;
 
-forExpression
-    :   assignmentExpression (',' assignmentExpression)*
-    ;
+forFinalExpression:    expression    ;
+forCondExpression:    expression    ;
+
 
 // program file
 compilationUnit

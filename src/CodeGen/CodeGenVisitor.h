@@ -26,13 +26,15 @@ class CodeGenVisitor : public CBaseVisitor {
 
     // compound statement
     string curFunc;
+    strings breakStack;
+    strings continueStack;
     vector<size_t> blockOrderStack;
     size_t blockOrder;
 
     // label
     size_t labelCount;
 
-    const string getCompoundContext() {
+    string getCompoundContext() {
         string compound_names;
         // TODO: make sure '@' not in any name
         for (const auto &order : blockOrderStack) {
@@ -40,7 +42,7 @@ class CodeGenVisitor : public CBaseVisitor {
         }
         return curFunc + '@' + compound_names;
     }
-    
+
 public:
     CodeGenVisitor() : curFunc(), blockOrder(0), labelCount(0), blockOrderStack(), _code(), _data() {}
 
@@ -86,6 +88,16 @@ public:
     antlrcpp::Any visitCompoundStatement(CParser::CompoundStatementContext *ctx) override;
 
     antlrcpp::Any visitIfStmt(CParser::IfStmtContext *ctx) override;
+
+    antlrcpp::Any visitWhileLoop(CParser::WhileLoopContext *ctx) override;
+
+    antlrcpp::Any visitDoWhile(CParser::DoWhileContext *ctx) override;
+
+    antlrcpp::Any visitForLoop(CParser::ForLoopContext *ctx) override;
+
+    antlrcpp::Any visitContinueStmt(CParser::ContinueStmtContext *ctx) override;
+
+    antlrcpp::Any visitBreakStmt(CParser::BreakStmtContext *ctx) override;
 
     // program file
     antlrcpp::Any visitCompilationUnit(CParser::CompilationUnitContext *ctx) override;
@@ -191,22 +203,7 @@ private:
         bne("t1", "0", target);
     }
 
-    inline void br() { j(to_string(labelCount++)); }
-
     inline void comment(const string &comment) { _code << "\t#" + comment + "\n"; }
-
-//    inline void frameAddrLocal(size_t k) {
-//        iType("addiu", "v0", "fp", -12 - 4 * (int) k);
-//    }
-//
-//    inline void loadLocal(int k) {
-//        memType("lw", "a0", "fp", -12 - 4 * k);
-//    }
-//
-//    inline void storeLocal(int k) {
-//        memType("sw", "a0", "fp", -12 - 4 * k);
-//    }
-
 
     void genBinaryExpressionAsm(size_t tokenType);
 
