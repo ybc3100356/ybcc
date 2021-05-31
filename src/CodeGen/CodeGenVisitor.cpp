@@ -15,17 +15,14 @@ antlrcpp::Any CodeGenVisitor::visitCompilationUnit(CParser::CompilationUnitConte
 
 antlrcpp::Any CodeGenVisitor::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx) {
     curFunc = ctx->declarator()->directDeclarator()->identifier()->getText();
-    auto entries = SymTab::getInstance().entries;
-    auto curFuncEntry = entries.find(curFunc);
-    if (curFuncEntry == entries.end()) {
-        assert(false);
-    }
-    auto funcNode = dynamic_cast<FunctionTypeNode *> (curFuncEntry->second.type.getTypeTree().get());
+    auto curFuncEntry = SymTab::getInstance().get(curFunc, ctx->getStart()->getLine(),
+                                                  ctx->getStart()->getCharPositionInLine());
+    auto funcNode = dynamic_cast<FunctionTypeNode *> (curFuncEntry.type.getTypeTree().get());
     // prologue: allocate an frame
     _code << curFunc << ":\n";
     pushReg("ra");
     pushReg("s8");
-    iType("addiu", "s8", "sp", 0); // new fp
+    mov("s8","sp");
 
     // allocate local vars on stack
     size_t offsets = SymTab::getInstance().getTotalOffset();
@@ -36,27 +33,27 @@ antlrcpp::Any CodeGenVisitor::visitFunctionDefinition(CParser::FunctionDefinitio
     // TODO: param passing
     visit(ctx->compoundStatement());
 
-    if (curFunc == "main" && false) { // if there is no return in main
-        _code << "\tli $v0, 0\n"            // return 0
-              << "\taddiu $sp, $s8, 4\n"
-              << "\tlw $ra, 0($sp)\n"       // ra
-              << "\tlw $s8, -4($sp)\n"      // fp
-              << "\tjr $ra\n";              // ret
+    // main default: return 0
+    if (curFunc == "main") {
+        mov("v0","0");
+        mov("sp","s8");
+        popReg("s8");
+        popReg("ra");
+        _code <<  "\tjr $ra\n";              // ret
     }
     return ExpType::UNDEF;
 }
 
 antlrcpp::Any CodeGenVisitor::visitCompoundStatement(CParser::CompoundStatementContext *ctx) {
-    ++blockDep;
-    curFunc += "@" + std::to_string(blockDep);
+    comment("block " + to_string(blockOrder) + " begin:");
+    blockOrderStack.push_back(blockOrder);
+    blockOrder = 0;
     for (auto item : ctx->blockItem()) {
         visit(item);
     }
-    // When exiting a scope, update the block depth & block order(only top level)
-    if (--blockDep == 0) { ;
-    }
-    size_t pos = curFunc.find_last_of('@');
-    curFunc = curFunc.substr(0, pos);
+    blockOrder = blockOrderStack.back() + 1;
+    blockOrderStack.pop_back();
+    comment("block " + to_string(blockOrder-1) + " end");
     return ExpType::UNDEF;
 }
 
@@ -116,15 +113,12 @@ antlrcpp::Any CodeGenVisitor::visitConstant(CParser::ConstantContext *ctx) {
 }
 
 antlrcpp::Any CodeGenVisitor::visitIdentifier(CParser::IdentifierContext *ctx) {
-    auto entries = SymTab::getInstance().entries;
-    auto symbol = curFunc + "@" + ctx->getText();
-    auto entry = entries.find(symbol);
-    comment("push symbol addr: " + symbol);
-    if (entry != entries.end()) {
-        pushFrameAddr(entry->second.offset);
-        return ExpType::LEFT;
-    } else
-        throw UnDef(symbol);
+    auto symbol = getCompoundContext() + ctx->getText();
+    auto entry = SymTab::getInstance().get(symbol, ctx->getStart()->getLine(),
+                                           ctx->getStart()->getCharPositionInLine());
+    comment("push symbol addr: " + symbol + "(" + to_string(entry.line)+", " + to_string(entry.column) + ")");
+    pushFrameAddr(entry.offset);
+    return ExpType::LEFT;
 }
 
 antlrcpp::Any CodeGenVisitor::visitPrimaryExpression(CParser::PrimaryExpressionContext *ctx) {

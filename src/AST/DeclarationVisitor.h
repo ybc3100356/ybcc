@@ -20,9 +20,21 @@ using InitDeclarator = pair<string, InitValueType *>;
 using InitDeclarators = vector<InitDeclarator>;
 
 class DeclarationVisitor : public CBaseVisitor {
-    strings compound_context;
-    size_t blockDep = 0;
+    string curFunc;
+    vector<size_t> blockOrderStack;
+    size_t blockOrder = 0;
 public:
+
+    const string getCompoundContext() {
+        string compound_names;
+        // TODO: make sure '@' not in any name
+        for (const auto &order : blockOrderStack) {
+            compound_names += to_string(order) + '@';
+        }
+        return curFunc + '@'+ compound_names;
+    }
+
+    antlrcpp::Any visitIdentifier(CParser::IdentifierContext *ctx) override;
 
     antlrcpp::Any visitDeclaration(CParser::DeclarationContext *ctx) override;
 

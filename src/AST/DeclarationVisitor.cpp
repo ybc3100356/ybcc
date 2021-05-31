@@ -6,16 +6,20 @@
 
 #include <memory>
 
+antlrcpp::Any DeclarationVisitor::visitIdentifier(CParser::IdentifierContext *ctx) {
+    return SymTab::getInstance().get(getCompoundContext() + ctx->Identifier()->getText(),
+                                     ctx->getStart()->getLine(), ctx->getStart()->getCharPositionInLine());
+}
+
 antlrcpp::Any DeclarationVisitor::visitDeclaration(CParser::DeclarationContext *ctx) {
+    auto line = ctx->getStart()->getLine();
+    auto column = ctx->getStart()->getCharPositionInLine();
     auto type = visit(ctx->declarationSpecifiers()).as<CType>();
     auto declarators = visit(ctx->initDeclaratorList()).as<InitDeclarators>();
-    string compound_names;
-    for (const auto &compound_name : compound_context) {
-        compound_names += compound_name + '@';
-        // TODO: make sure '@' not in any name
-    }
     for (auto &declarator : declarators) {
-        SymTab::getInstance().add(compound_names + declarator.first, type, declarator.second);
+        auto symbol = getCompoundContext() + declarator.first;
+        SymTab::getInstance().add(symbol, type, line, column, declarator.second);
+        SymTab::getInstance().get(getCompoundContext() + declarator.first, line, column);
     }
     return nullptr;
 }
@@ -57,7 +61,7 @@ antlrcpp::Any DeclarationVisitor::visitInitDeclaratorList(CParser::InitDeclarato
 }
 
 antlrcpp::Any DeclarationVisitor::visitInitDeclarator(CParser::InitDeclaratorContext *ctx) {
-    // TODO: initializer
+
     if (auto i = ctx->initializer()) {
         return std::make_pair(ctx->declarator()->directDeclarator()->identifier()->getText(),
                               visit(i).as<InitValueType *>());
@@ -80,10 +84,9 @@ antlrcpp::Any DeclarationVisitor::visitFunctionDefinition(CParser::FunctionDefin
     auto name = visit(ctx->declarator()).as<string>();
 //    auto paramList = visit(ctx->parameterTypeList());
     auto funcType = CType(static_cast<CTypeNodePtr>(new FunctionTypeNode(returnType)));
-    SymTab::getInstance().add(name, funcType);
-    compound_context.push_back(name);
+    SymTab::getInstance().add(name, funcType, ctx->getStart()->getLine(), ctx->getStart()->getCharPositionInLine());
+    curFunc = name;
     visit(ctx->compoundStatement());
-    compound_context.pop_back();
     return nullptr;
 }
 
@@ -96,14 +99,15 @@ antlrcpp::Any DeclarationVisitor::visitDirectDeclarator(CParser::DirectDeclarato
 }
 
 antlrcpp::Any DeclarationVisitor::visitCompoundStatement(CParser::CompoundStatementContext *ctx) {
-    ++blockDep;
-    compound_context.push_back(to_string(blockDep));
+    blockOrderStack.push_back(blockOrder);
+    blockOrder = 0;
     auto res = visitChildren(ctx);
-    compound_context.pop_back();
-    --blockDep;
+    blockOrder = blockOrderStack.back() + 1;
+    blockOrderStack.pop_back();
     return res;
 }
 
 antlrcpp::Any DeclarationVisitor::visitBlockItem(CParser::BlockItemContext *ctx) {
     return visitChildren(ctx);
 }
+

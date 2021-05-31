@@ -41,24 +41,7 @@ int main(int argc, const char *argv[]) {
         DeclarationVisitor declarationVisitor;
         declarationVisitor.visit(tree);
         if (argc == 3) {
-            std::cout << "symbol table:" << std::endl;
-            for (auto &entry : SymTab::getInstance().entries) {
-                std::cout << "name:[" << entry.first << "] type:[";
-                auto type = entry.second.type.getTypeTree()->getNodeType();
-                std::cout << getTypeStr(type) << "]";
-
-                // function
-                if (type == BaseType::Function) {
-                    auto funcType = dynamic_cast<FunctionTypeNode *>(entry.second.type.getTypeTree().get());
-                    std::cout << " return type:[" << getTypeStr(funcType->getReturnType()) << "]";
-                }
-                std::cout << " offset:[" << entry.second.offset << "]";
-
-                if (entry.second.initValue != nullptr) {
-                    std::cout << " init value:[" << entry.second.initValue->getText() << "]";
-                }
-                std::cout << std::endl;
-            }
+            SymTab::getInstance().show();
             freopen(argv[2], "w", stdout);
         }
         CodeGenVisitor codeGenVisitor;

@@ -20,14 +20,29 @@ using strings = vector<string>;
 using std::ostringstream;
 
 class CodeGenVisitor : public CBaseVisitor {
+    // code gen
     ostringstream _code;
     ostringstream _data;
+
+    // compound statement
     string curFunc;
-    size_t blockDep;
+    vector<size_t> blockOrderStack;
+    size_t blockOrder;
+
+    // label
     size_t labelCount;
 
+    const string getCompoundContext() {
+        string compound_names;
+        // TODO: make sure '@' not in any name
+        for (const auto &order : blockOrderStack) {
+            compound_names += to_string(order) + '@';
+        }
+        return curFunc + '@' + compound_names;
+    }
+    
 public:
-    CodeGenVisitor() : blockDep(0), labelCount(0), curFunc(), _code(), _data() {}
+    CodeGenVisitor() : curFunc(), blockOrder(0), labelCount(0), blockOrderStack(), _code(), _data() {}
 
     // expression
     antlrcpp::Any visitPrimaryExpression(CParser::PrimaryExpressionContext *ctx) override;
