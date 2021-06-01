@@ -166,8 +166,8 @@ antlrcpp::Any CodeGenVisitor::visitForLoop(CParser::ForLoopContext *ctx) {
     continueStack.push_back(continuePoint);
     if (auto exp = ctx->forCondition()->expression()) {
         visit(exp);
-    } else {
-        visit(ctx->forCondition()->declaration());
+    } else if (auto dec = ctx->forCondition()->declaration()) {
+        visit(dec);
     }
     label(loopBegin);
     // cond
@@ -177,7 +177,7 @@ antlrcpp::Any CodeGenVisitor::visitForLoop(CParser::ForLoopContext *ctx) {
         }
         beqz(breakPoint);
     } else {
-        j(breakPoint);
+        // do nothing
     }
     // body
     visit(ctx->statement());
@@ -196,11 +196,19 @@ antlrcpp::Any CodeGenVisitor::visitForLoop(CParser::ForLoopContext *ctx) {
 }
 
 antlrcpp::Any CodeGenVisitor::visitContinueStmt(CParser::ContinueStmtContext *ctx) {
-    return CBaseVisitor::visitContinueStmt(ctx);
+    if (continueStack.empty()) {
+        throw InvalidContinue();
+    } else
+        j(continueStack.back());
+    return ExpType::UNDEF;
 }
 
 antlrcpp::Any CodeGenVisitor::visitBreakStmt(CParser::BreakStmtContext *ctx) {
-    return CBaseVisitor::visitBreakStmt(ctx);
+    if (continueStack.empty()) {
+        throw InvalidBreak();
+    } else
+        j(breakStack.back());
+    return ExpType::UNDEF;
 }
 
 

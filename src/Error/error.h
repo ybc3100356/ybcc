@@ -33,4 +33,15 @@ public:
     explicit InvalidLvalue(const string &ctx) : Error(("not a left value:" + ctx).c_str()) {}
 };
 
+class InvalidBreak : public Error {
+public:
+    explicit InvalidBreak(const string &ctx = "") : Error(
+            ("break statement not within loop or switch" + ctx).c_str()) {}
+};
+
+class InvalidContinue : public Error {
+public:
+    explicit InvalidContinue(const string &ctx = "") : Error(("continue statement not within a loop" + ctx).c_str()) {}
+};
+
 #endif //MYCC_ERROR_H
