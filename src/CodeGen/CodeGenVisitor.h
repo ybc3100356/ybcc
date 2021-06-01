@@ -79,6 +79,8 @@ public:
 
     antlrcpp::Any visitConditionalExpression(CParser::ConditionalExpressionContext *ctx) override;
 
+    antlrcpp::Any visitPostfixExpression(CParser::PostfixExpressionContext *ctx) override;
+
     // init declaration
     antlrcpp::Any visitInitDeclarator(CParser::InitDeclaratorContext *ctx) override;
 
@@ -104,12 +106,14 @@ public:
 
     antlrcpp::Any visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx) override;
 
+    antlrcpp::Any visitBlockItem(CParser::BlockItemContext *ctx) override;
+
+    antlrcpp::Any visitExpStmt(CParser::ExpStmtContext *ctx) override;
 
 private:
     // mips instructions
     inline void li(const string &reg, int imm) { _code << "\tli $" + reg + ", " + to_string(imm) + "\n"; }
 
-    inline void mov(const string &reg0, const string &reg1) { iType("addiu", reg0, reg1, 0); }
 
     inline void memType(const string &op, const string &rs, const string &rt, int offset) {
         _code << "\t" + op + " $" + rs + ", " + to_string(offset) + "($" + rt + ")\n";
@@ -143,7 +147,30 @@ private:
         _code << "\tj " + target + "\n";
     }
 
+    inline void jal(const string &target) {
+        _code << "\tjal " + target + "\n";
+    }
+
+    inline void print(const string &reg) {
+        comment("print reg:$" + reg);
+        pushReg("a0");
+        pushReg("v0");
+        mov("a0", reg);
+        _code << "\tli $v0, 1 \n"
+              << "\tsyscall\n";
+        popReg("v0");
+        popReg("a0");
+    }
+
     // IR
+    inline void call(const string &funcName, size_t argOffsets) {
+        comment("call " + funcName + " arg offset:(" + to_string(argOffsets) + ")");
+        jal(funcName);
+        iType("addiu", "sp", "sp", 4 * (int) argOffsets);
+    }
+
+    inline void mov(const string &reg0, const string &reg1) { iType("addiu", reg0, reg1, 0); }
+
     inline void pushReg(const string &reg) {
         comment("push(" + reg + ")[2 lines]");
         iType("addiu", "sp", "sp", -4);
@@ -166,7 +193,7 @@ private:
     inline void pushFrameAddr(size_t k) {
         comment("push symbol addr[3 lines]");
         iType("addiu", "sp", "sp", -4);
-        iType("addiu", "t1", "fp", -4 - 4 * (int) k);
+        iType("addiu", "t1", "s8", -4 - 4 * (int) k);
         memType("sw", "t1", "sp", 0);
     }
 
@@ -184,7 +211,6 @@ private:
         iType("addiu", "sp", "sp", 4);    //
         memType("sw", "t1", "t2", 0);    // store(to addr)
     }
-
 
     inline void pop() {
         comment("pop");

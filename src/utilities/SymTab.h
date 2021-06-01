@@ -28,8 +28,9 @@ public:
 };
 
 class SymTab {
-    size_t _offset{};
     unordered_map<string, SymTabEntry> entries;
+    unordered_map<string, size_t> _offsets;
+    unordered_map<string, vector<string>> _params;
 public:
 
     static SymTab &getInstance() {
@@ -39,11 +40,17 @@ public:
 
     void show();
 
-    void add(const string &symbol, const CType &type, size_t line, size_t column, InitValueType *initValue = nullptr);
+    void add(const string &symbol, const CType &type, size_t line, size_t column, InitValueType *initValue = nullptr,
+             bool isParam = false);
 
-    const SymTabEntry &get(const string &, size_t line, size_t column);
+    const SymTabEntry &get(const string &name, size_t line = -1, size_t column = -1);
 
-    size_t getTotalOffset() const { return _offset; }
+    size_t getOffset(const string &symbol);
+
+    // function
+    size_t getTotalOffset(const string &funcName);
+
+    vector<string> getParamNames(const string &funcName);
 
 private:
     SymTab() = default;

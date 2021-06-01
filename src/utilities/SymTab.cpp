@@ -4,13 +4,26 @@
 
 #include "SymTab.h"
 
-void SymTab::add(const string &symbol, const CType &type, size_t line, size_t column, InitValueType *initValue) {
+void SymTab::add(const string &symbol, const CType &type, size_t line, size_t column, InitValueType *initValue,
+                 bool isParam) {
     auto entry = entries.find(symbol);
     if (entry != entries.end()) {
         throw ReDef(symbol);
     } else {
-        entries.insert({symbol, SymTabEntry(type, _offset, line, column, initValue)});
-        _offset += type.getTypeTree()->getSize() / 4;
+        if (type.getTypeTree()->getNodeType() == BaseType::Function) {
+            // function
+            entries.insert({symbol, SymTabEntry(type, 0, line, column, initValue)});
+            _params[symbol];
+        } else {
+            // local variable
+            auto pos = symbol.find_first_of('@');
+            auto funcName = symbol.substr(0, pos);
+            entries.insert({symbol, SymTabEntry(type, _offsets[funcName], line, column, initValue)});
+            _offsets[funcName] += type.getTypeTree()->getSize() / 4;
+            if (isParam)
+                _params[funcName].push_back(symbol);
+        }
+        // TODO: global variable
     }
 }
 
@@ -30,11 +43,20 @@ const SymTabEntry &SymTab::get(const string &symbol, size_t line, size_t column)
     auto entry = entries.end();
     while (true) {
         entry = entries.find(prefix + "@" + name);
-        if (entry != entries.end() && entry->second.line <= line && entry->second.column <= column) {
+        if (entry != entries.end() &&
+            (entry->second.line < line ||
+             (entry->second.line == line && entry->second.column <= column))) {
 //            std::cout << " found: " << prefix + "@" + name << std::endl;
             return entry->second;
         }
         if ((pos = prefix.find_last_of('@')) == string::npos) {
+            entry = entries.find(name);
+            if (entry != entries.end() &&
+                (entry->second.line < line ||
+                 (entry->second.line == line && entry->second.column <= column))) {
+//            std::cout << " found: " << prefix + "@" + name << std::endl;
+                return entry->second;
+            }
             throw UnDef(symbol);
         }
 //        std::cout << prefix + "@" + name + " not found, try:";
@@ -45,7 +67,7 @@ const SymTabEntry &SymTab::get(const string &symbol, size_t line, size_t column)
 
 void SymTab::show() {
     std::cout << "symbol table:" << std::endl;
-    for (auto &entry : SymTab::getInstance().entries) {
+    for (auto &entry : entries) {
         std::cout << "name:[" << entry.first << "]\t\t type:[";
         auto type = entry.second.type.getTypeTree()->getNodeType();
         std::cout << getTypeStr(type) << "]\t\t";
@@ -61,6 +83,28 @@ void SymTab::show() {
             std::cout << " init value:[" << entry.second.initValue->getText() << "]\t\t";
         }
         std::cout << std::endl;
+    }
+
+    std::cout << "offset:" << std::endl;
+    for (const auto&[key, value]:_offsets) {
+        std::cout << "func:" << key << ", offset:" << value << std::endl;
+    }
+}
+
+size_t SymTab::getTotalOffset(const string &funcName) {
+    return _offsets[funcName];
+}
+
+vector<string> SymTab::getParamNames(const string &funcName) {
+    return _params[funcName];
+}
+
+size_t SymTab::getOffset(const string &symbol) {
+    auto result = entries.find(symbol);
+    if (result != entries.end())
+        return result->second.offset;
+    else {
+        throw UnDef(symbol);
     }
 }
 

@@ -54,6 +54,10 @@ public:
 
     antlrcpp::Any visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx) override;
 
+    antlrcpp::Any visitParameterList(CParser::ParameterListContext *ctx) override;
+
+    antlrcpp::Any visitParameterDeclaration(CParser::ParameterDeclarationContext *ctx) override;
+
     antlrcpp::Any visitDirectDeclarator(CParser::DirectDeclaratorContext *ctx) override;
 
     antlrcpp::Any visitDeclarator(CParser::DeclaratorContext *ctx) override;

@@ -5,6 +5,8 @@
 #ifndef MYCC_TYPE_H
 #define MYCC_TYPE_H
 
+#include <utility>
+
 #include "utilities.h"
 #include "CLexer.h"
 
@@ -145,14 +147,12 @@ public:
     BaseType getReturnType() {
         return childNode->getNodeType();
     }
-
     size_t getSize() override { return 0; }
 
-    const vector<CTypeNodePtr> &getParamList() { return paramList; }
+    vector<CTypeNodePtr> &getParamList() { return paramList; }
 
-    explicit FunctionTypeNode(const CType &returnType)
-            : CTypeNodeBase(BaseType::Function, returnType.getTypeTree()) {}
-
+    explicit FunctionTypeNode(const CType &returnType, vector<CTypeNodePtr> paramList)
+            : CTypeNodeBase(BaseType::Function, returnType.getTypeTree()), paramList(std::move(paramList)) {}
 };
 
 using FunctionTypeNodePtr = shared_ptr<FunctionTypeNode>;

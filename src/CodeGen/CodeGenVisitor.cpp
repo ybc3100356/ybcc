@@ -15,32 +15,46 @@ antlrcpp::Any CodeGenVisitor::visitCompilationUnit(CParser::CompilationUnitConte
 
 antlrcpp::Any CodeGenVisitor::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx) {
     curFunc = ctx->declarator()->directDeclarator()->identifier()->getText();
-    auto curFuncEntry = SymTab::getInstance().get(curFunc, ctx->getStart()->getLine(),
-                                                  ctx->getStart()->getCharPositionInLine());
-    auto funcNode = dynamic_cast<FunctionTypeNode *> (curFuncEntry.type.getTypeTree().get());
     // prologue: allocate an frame
-    _code << curFunc << ":\n";
+    label(curFunc);
     pushReg("ra");
     pushReg("s8");
     mov("s8", "sp");
 
+    // TODO: Calling convection: a0-a3, more on stack
+    // now: all paramNames are on stack
+    auto paramNames = SymTab::getInstance().getParamNames(curFunc);
+    for (auto &paramName : paramNames) {
+        auto entry = SymTab::getInstance().get(paramName);
+        auto argOffset = WORD_BYTES * (2 + (int) entry.offset);
+        auto paramOffset = -WORD_BYTES - WORD_BYTES * (int) entry.offset;
+        comment("param " + paramName + "(" + to_string(entry.line) + "," + to_string(entry.column) + ")" +
+                ": fp+(" + to_string(argOffset) +
+                ") to fp+(" + to_string(paramOffset) + ")");
+        memType("lw", "t0", "s8", argOffset);
+        memType("sw", "t0", "s8", paramOffset);
+    }
+
     // allocate local vars on stack
-    size_t offsets = SymTab::getInstance().getTotalOffset();
+    size_t offsets = SymTab::getInstance().getTotalOffset(curFunc);
     comment("offsets:" + to_string(offsets));
     iType("addiu", "sp", "s8", -4 * (int) offsets);
 
-    // Calling convection: a0-a3, more on stack
-    // TODO: param passing
+    pushReg("s0");
+    // TODO: dynamic decide saved registers
     visit(ctx->compoundStatement());
 
     // main default: return 0
     if (curFunc == "main") {
         mov("v0", "0");
+        popReg("s0");
         mov("sp", "s8");
         popReg("s8");
         popReg("ra");
         _code << "\tjr $ra\n";              // ret
     }
+    blockOrderStack.clear();
+    blockOrder = 0;
     return ExpType::UNDEF;
 }
 
@@ -49,7 +63,10 @@ antlrcpp::Any CodeGenVisitor::visitCompoundStatement(CParser::CompoundStatementC
     blockOrderStack.push_back(blockOrder);
     blockOrder = 0;
     for (auto item : ctx->blockItem()) {
-        visit(item);
+        if (visit(item).as<ExpType>() != ExpType::UNDEF) {
+            comment("unused expr value, destroy it");
+            pop();
+        }
     }
     blockOrder = blockOrderStack.back() + 1;
     blockOrderStack.pop_back();
@@ -65,15 +82,18 @@ antlrcpp::Any CodeGenVisitor::visitReturnStmt(CParser::ReturnStmtContext *ctx) {
     }
     popReg("v0");
 
-    // epilogue: deallocate an frame
-    size_t offsets = SymTab::getInstance().getTotalOffset();
-    comment("deallocate:" + to_string(offsets));
-    mov("sp", "s8");
+    // restore saved registers
+    // TODO: dynamic decide saved registers
+    popReg("s0");
 
+    // epilogue: deallocate an frame
+    size_t offsets = SymTab::getInstance().getTotalOffset(curFunc);
+    comment("deallocate:" + to_string(offsets));
+
+    mov("sp", "s8");
     popReg("s8");
     popReg("ra");
     _code << "\tjr $ra\n";
-
     return ExpType::UNDEF;
 }
 
@@ -125,7 +145,6 @@ antlrcpp::Any CodeGenVisitor::visitWhileLoop(CParser::WhileLoopContext *ctx) {
     blockOrderStack.pop_back();
     return ExpType::UNDEF;
 }
-
 
 antlrcpp::Any CodeGenVisitor::visitDoWhile(CParser::DoWhileContext *ctx) {
     blockOrderStack.push_back(blockOrder);
@@ -211,7 +230,6 @@ antlrcpp::Any CodeGenVisitor::visitBreakStmt(CParser::BreakStmtContext *ctx) {
     return ExpType::UNDEF;
 }
 
-
 antlrcpp::Any CodeGenVisitor::visitConstant(CParser::ConstantContext *ctx) {
     comment("constant");
     li("v0", atoi(ctx->IntegerConstant()->getText().c_str()));
@@ -226,6 +244,37 @@ antlrcpp::Any CodeGenVisitor::visitIdentifier(CParser::IdentifierContext *ctx) {
     comment("push symbol addr: " + symbol + "(" + to_string(entry.line) + ", " + to_string(entry.column) + ")");
     pushFrameAddr(entry.offset);
     return ExpType::LEFT;
+}
+
+antlrcpp::Any CodeGenVisitor::visitPostfixExpression(CParser::PostfixExpressionContext *ctx) {
+    auto argExpList = ctx->argumentExpressionList();
+    auto parens = ctx->LeftParen();
+    if (parens.empty()) {
+        return visit(ctx->primaryExpression());
+    } else { // if '(' argumentExpressionList? ')'
+        if (auto id = ctx->primaryExpression()->identifier()) {
+            auto funcName = id->getText();
+            SymTab::getInstance().get(funcName);
+            size_t offsets = 0;
+            if (!argExpList.empty()) {
+                auto exps = argExpList[0]->assignmentExpression();
+                for (int i = (int) exps.size() - 1; i >= 0; --i) {
+                    if (visit(exps[i]).as<ExpType>() == ExpType::LEFT) {
+                        load();
+                    }
+                    // TODO: Calling convection: a0-a3, more on stack
+                }
+                for (auto &param : SymTab::getInstance().getParamNames(funcName)) {
+                    offsets += SymTab::getInstance().getOffset(param);
+                }
+            }
+            call(funcName, offsets);
+            pushReg("v0");
+            // TODO: load if function return a lvalue
+        } else
+            throw InvalidFuncCall();
+    }
+    return ExpType::UNDEF;
 }
 
 antlrcpp::Any CodeGenVisitor::visitPrimaryExpression(CParser::PrimaryExpressionContext *ctx) {
@@ -303,7 +352,6 @@ antlrcpp::Any CodeGenVisitor::visitConditionalExpression(CParser::ConditionalExp
 }
 
 antlrcpp::Any CodeGenVisitor::visitUnaryExpression(CParser::UnaryExpressionContext *ctx) {
-    ExpType expType;
     if (auto postExp = ctx->postfixExpression()) {
         return visit(postExp);
     } else {
@@ -344,7 +392,7 @@ antlrcpp::Any CodeGenVisitor::genBinaryExpression(vector<T1 *> exps, vector<T2 *
     }
     if (!ops.empty()) {
         popReg("t0");
-        pushReg("s0");
+        pushReg("s0");// save $s0, and use it as accumulator in the following binary expressions
         mov("s0", "t0");
         for (int i = 0; i < ops.size(); i++) {
             if (visit(exps[i + 1]).template as<ExpType>() == ExpType::LEFT) {
@@ -478,5 +526,21 @@ antlrcpp::Any CodeGenVisitor::visitLogicalAndExpression(CParser::LogicalAndExpre
 
 antlrcpp::Any CodeGenVisitor::visitLogicalOrExpression(CParser::LogicalOrExpressionContext *ctx) {
     genBinaryExpression(ctx->logicalAndExpression(), ctx->logicalOrOperator());
+    return ExpType::UNDEF;
+}
+
+antlrcpp::Any CodeGenVisitor::visitBlockItem(CParser::BlockItemContext *ctx) {
+    if (auto stmt = ctx->statement()) {
+        return visit(stmt);
+    } else if (auto decl = ctx->declaration()) {
+        visit(decl);
+    }
+    return ExpType::UNDEF;
+}
+
+antlrcpp::Any CodeGenVisitor::visitExpStmt(CParser::ExpStmtContext *ctx) {
+    if (auto exp = ctx->expression()) {
+        return visit(exp);
+    }
     return ExpType::UNDEF;
 }

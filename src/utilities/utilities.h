@@ -21,5 +21,5 @@ using std::pair;
 using std::shared_ptr;
 using std::unique_ptr;
 using std::to_string;
-
+constexpr int WORD_BYTES = 4; // 1 word == 4 bytes
 #endif //MYCC_UTILITIES_H

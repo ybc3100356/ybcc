@@ -219,7 +219,7 @@ directDeclarator
     ;
 
 parameterTypeList
-    :   parameterList (',' '...')?
+    :   parameterList //(',' '...')?
     ;
 
 parameterList

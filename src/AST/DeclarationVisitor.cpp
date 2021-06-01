@@ -7,8 +7,11 @@
 #include <memory>
 
 antlrcpp::Any DeclarationVisitor::visitIdentifier(CParser::IdentifierContext *ctx) {
-    return SymTab::getInstance().get(getCompoundContext() + ctx->Identifier()->getText(),
-                                     ctx->getStart()->getLine(), ctx->getStart()->getCharPositionInLine());
+    auto symbol = getCompoundContext() + ctx->Identifier()->getText();
+    auto line = ctx->getStart()->getLine();
+    auto column = ctx->getStart()->getCharPositionInLine();
+    auto result = SymTab::getInstance().get(symbol, line, column);
+    return result;
 }
 
 antlrcpp::Any DeclarationVisitor::visitDeclaration(CParser::DeclarationContext *ctx) {
@@ -61,7 +64,6 @@ antlrcpp::Any DeclarationVisitor::visitInitDeclaratorList(CParser::InitDeclarato
 }
 
 antlrcpp::Any DeclarationVisitor::visitInitDeclarator(CParser::InitDeclaratorContext *ctx) {
-
     if (auto i = ctx->initializer()) {
         return std::make_pair(ctx->declarator()->directDeclarator()->identifier()->getText(),
                               visit(i).as<InitValueType *>());
@@ -82,12 +84,41 @@ antlrcpp::Any DeclarationVisitor::visitTypeSpecifier(CParser::TypeSpecifierConte
 antlrcpp::Any DeclarationVisitor::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx) {
     auto returnType = visit(ctx->declarationSpecifiers()).as<CType>();
     auto name = visit(ctx->declarator()).as<string>();
-//    auto paramList = visit(ctx->parameterTypeList());
-    auto funcType = CType(static_cast<CTypeNodePtr>(new FunctionTypeNode(returnType)));
-    SymTab::getInstance().add(name, funcType, ctx->getStart()->getLine(), ctx->getStart()->getCharPositionInLine());
     curFunc = name;
+    vector<CTypeNodePtr> paramTypes{};
+    if (auto paramTypeList = ctx->parameterTypeList()) {
+        if (auto paramList = paramTypeList->parameterList()) {
+            paramTypes = visit(paramList).as<vector<CTypeNodePtr>>();
+        }
+    }
+    auto funcType = CType(static_cast<CTypeNodePtr>(new FunctionTypeNode(returnType, paramTypes)));
+    SymTab::getInstance().add(name, funcType, ctx->getStart()->getLine(), ctx->getStart()->getCharPositionInLine());
+    SymTab::getInstance().get(name, ctx->getStart()->getLine(), ctx->getStart()->getCharPositionInLine());
     visit(ctx->compoundStatement());
+    blockOrderStack.clear();
+    blockOrder = 0;
     return nullptr;
+}
+
+antlrcpp::Any DeclarationVisitor::visitParameterList(CParser::ParameterListContext *ctx) {
+    auto paramDeclarations = ctx->parameterDeclaration();
+    vector<CTypeNodePtr> paramTypes;
+    for (auto paramDeclaration : paramDeclarations) {
+        auto paramType = visit(paramDeclaration).as<CTypeNodePtr>();
+        paramTypes.push_back(paramType);
+    }
+    return paramTypes;
+}
+
+antlrcpp::Any DeclarationVisitor::visitParameterDeclaration(CParser::ParameterDeclarationContext *ctx) {
+    auto line = ctx->getStart()->getLine();
+    auto column = ctx->getStart()->getCharPositionInLine();
+    auto type = visit(ctx->declarationSpecifiers()).as<CType>();
+    auto name = visit(ctx->declarator()).as<string>();
+    auto symbol = getCompoundContext() + "0@" + name; // params are in the same scope of func body
+    SymTab::getInstance().add(symbol, type, line, column, nullptr, true);
+    SymTab::getInstance().get(symbol, line, column);
+    return type.getTypeTree();
 }
 
 antlrcpp::Any DeclarationVisitor::visitDeclarator(CParser::DeclaratorContext *ctx) {
