@@ -31,7 +31,10 @@ public:
         for (const auto &order : blockOrderStack) {
             compound_names += to_string(order) + '@';
         }
-        return curFunc + '@' + compound_names;
+        if (!curFunc.empty())
+            return curFunc + '@' + compound_names;
+        else
+            return compound_names;
     }
 
     antlrcpp::Any visitIdentifier(CParser::IdentifierContext *ctx) override;

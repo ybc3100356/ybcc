@@ -49,4 +49,11 @@ public:
     explicit InvalidFuncCall(const string &ctx = "") : Error(("invalid parameter list." + ctx).c_str()) {}
 };
 
+class NonConstGlobalVar : public Error {
+public:
+    explicit NonConstGlobalVar(const string &symbol) : Error(
+            ("initializer element of " + symbol + " is not constant").c_str()) {}
+};
+
+
 #endif //MYCC_ERROR_H

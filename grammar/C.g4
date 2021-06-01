@@ -297,9 +297,11 @@ translationUnit
 
 externalDeclaration
     :   functionDefinition
-    |   declaration
+    |   globalDeclaration
     |   ';' // stray ;
     ;
+
+globalDeclaration : declaration;
 
 functionDefinition
     :   declarationSpecifiers? declarator '(' parameterTypeList? ')' compoundStatement

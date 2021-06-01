@@ -238,6 +238,12 @@ test 'int add(int x, int y) { return x+y; } int main() { return add(3, 5); }'
 test 'int sub(int x, int y) { return x-y; }  int main() { return sub(5, 3); }'
 test 'int add6(int a, int b, int c, int d, int e, int f) {    return a+b+c+d+e+f;} int main() { return add6(1,2,3,4,5,6); }'
 
+test 'int fib(int n) { if (n <= 1) return n; return fib(n - 1) + fib(n - 2);} int main() {    int n = 16;    return fib(n);}'
+test 'int fact(int n) { if (n == 0) {return 0;} else if (n == 1) { return 1;} else { return n * fact(n - 1);    }}int main() {    int n = 5;    int f = 0;    f = fact(n);    return f;}'
+test 'int a = 3;int main() {    a = 2;    int a = 1;    return a;}'
+
+test 'int a = 3;int b = 2;int main() {    a = 7;    int b = 1;    return a + b;}'
+
 echo "Well done!"
 
 #echo "Wrong case testing:"

@@ -15,7 +15,6 @@ void SymTab::add(const string &symbol, const CType &type, size_t line, size_t co
             entries.insert({symbol, SymTabEntry(type, 0, line, column, initValue)});
             _params[symbol];
         } else {
-            // local variable
             auto pos = symbol.find_first_of('@');
             auto funcName = symbol.substr(0, pos);
             entries.insert({symbol, SymTabEntry(type, _offsets[funcName], line, column, initValue)});
@@ -23,12 +22,12 @@ void SymTab::add(const string &symbol, const CType &type, size_t line, size_t co
             if (isParam)
                 _params[funcName].push_back(symbol);
         }
-        // TODO: global variable
+        entries[symbol].name = symbol;
     }
 }
 
 const SymTabEntry &SymTab::get(const string &symbol, size_t line, size_t column) {
-    // func
+    // func or globalVar var
     auto pos = symbol.find_last_of('@');
     if (pos == string::npos) {
         auto entry = entries.find(symbol);
@@ -46,7 +45,6 @@ const SymTabEntry &SymTab::get(const string &symbol, size_t line, size_t column)
         if (entry != entries.end() &&
             (entry->second.line < line ||
              (entry->second.line == line && entry->second.column <= column))) {
-//            std::cout << " found: " << prefix + "@" + name << std::endl;
             return entry->second;
         }
         if ((pos = prefix.find_last_of('@')) == string::npos) {
@@ -54,14 +52,12 @@ const SymTabEntry &SymTab::get(const string &symbol, size_t line, size_t column)
             if (entry != entries.end() &&
                 (entry->second.line < line ||
                  (entry->second.line == line && entry->second.column <= column))) {
-//            std::cout << " found: " << prefix + "@" + name << std::endl;
                 return entry->second;
             }
             throw UnDef(symbol);
+        } else {
+            prefix = prefix.substr(0, pos);
         }
-//        std::cout << prefix + "@" + name + " not found, try:";
-        prefix = prefix.substr(0, pos);
-//        std::cout << prefix + "@" + name << std::endl;
     }
 }
 

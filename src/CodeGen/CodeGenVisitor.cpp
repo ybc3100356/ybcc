@@ -13,6 +13,23 @@ antlrcpp::Any CodeGenVisitor::visitCompilationUnit(CParser::CompilationUnitConte
     return _data.str() + _code.str();
 }
 
+antlrcpp::Any CodeGenVisitor::visitGlobalDeclaration(CParser::GlobalDeclarationContext *ctx) {
+    auto initDeclarators = ctx->declaration()->initDeclaratorList()->initDeclarator();
+    if (!initDeclarators.empty()) {
+        for (auto initDeclarator : initDeclarators) {
+            auto id = initDeclarator->declarator()->directDeclarator()->identifier();
+            auto name = id->getText();
+            // must be constant
+            auto initValue = 0;
+            auto initCtx = SymTab::getInstance().get(name).initValue;
+            if (initCtx != nullptr)
+                initValue = atoi(initCtx->getText().c_str());
+            globalVar(name, initValue);
+        }
+    }
+    return ExpType::UNDEF;
+}
+
 antlrcpp::Any CodeGenVisitor::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx) {
     curFunc = ctx->declarator()->directDeclarator()->identifier()->getText();
     // prologue: allocate an frame
@@ -51,7 +68,7 @@ antlrcpp::Any CodeGenVisitor::visitFunctionDefinition(CParser::FunctionDefinitio
         mov("sp", "s8");
         popReg("s8");
         popReg("ra");
-        _code << "\tjr $ra\n";              // ret
+        ret();
     }
     blockOrderStack.clear();
     blockOrder = 0;
@@ -93,7 +110,7 @@ antlrcpp::Any CodeGenVisitor::visitReturnStmt(CParser::ReturnStmtContext *ctx) {
     mov("sp", "s8");
     popReg("s8");
     popReg("ra");
-    _code << "\tjr $ra\n";
+    ret();
     return ExpType::UNDEF;
 }
 
@@ -241,8 +258,14 @@ antlrcpp::Any CodeGenVisitor::visitIdentifier(CParser::IdentifierContext *ctx) {
     auto symbol = getCompoundContext() + ctx->getText();
     auto entry = SymTab::getInstance().get(symbol, ctx->getStart()->getLine(),
                                            ctx->getStart()->getCharPositionInLine());
-    comment("push symbol addr: " + symbol + "(" + to_string(entry.line) + ", " + to_string(entry.column) + ")");
-    pushFrameAddr(entry.offset);
+    if (entry.name.find_last_of('@') == string::npos) {// globalVar var
+        comment("push symbol addr: " + symbol + "(" + to_string(entry.line) + ", " + to_string(entry.column) + ")");
+        la("t0", entry.name);
+        pushReg("t0");
+    } else {
+        comment("push symbol addr: " + symbol + "(" + to_string(entry.line) + ", " + to_string(entry.column) + ")");
+        pushFrameAddr(entry.offset);
+    }
     return ExpType::LEFT;
 }
 
@@ -544,3 +567,4 @@ antlrcpp::Any CodeGenVisitor::visitExpStmt(CParser::ExpStmtContext *ctx) {
     }
     return ExpType::UNDEF;
 }
+

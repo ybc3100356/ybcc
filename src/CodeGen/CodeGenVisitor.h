@@ -40,7 +40,10 @@ class CodeGenVisitor : public CBaseVisitor {
         for (const auto &order : blockOrderStack) {
             compound_names += to_string(order) + '@';
         }
-        return curFunc + '@' + compound_names;
+        if (!curFunc.empty())
+            return curFunc + '@' + compound_names;
+        else
+            return compound_names;
     }
 
 public:
@@ -84,6 +87,8 @@ public:
     // init declaration
     antlrcpp::Any visitInitDeclarator(CParser::InitDeclaratorContext *ctx) override;
 
+    antlrcpp::Any visitGlobalDeclaration(CParser::GlobalDeclarationContext *ctx) override;
+
     // statement
     antlrcpp::Any visitReturnStmt(CParser::ReturnStmtContext *ctx) override;
 
@@ -114,6 +119,7 @@ private:
     // mips instructions
     inline void li(const string &reg, int imm) { _code << "\tli $" + reg + ", " + to_string(imm) + "\n"; }
 
+    inline void la(const string &reg, const string &symbol) { _code << "\tla $" + reg + ", " + symbol + "\n"; }
 
     inline void memType(const string &op, const string &rs, const string &rt, int offset) {
         _code << "\t" + op + " $" + rs + ", " + to_string(offset) + "($" + rt + ")\n";
@@ -151,6 +157,11 @@ private:
         _code << "\tjal " + target + "\n";
     }
 
+    inline void ret() {
+        _code << "\tjr $ra\n";
+    }
+
+
     inline void print(const string &reg) {
         comment("print reg:$" + reg);
         pushReg("a0");
@@ -163,6 +174,14 @@ private:
     }
 
     // IR
+    inline void globalVar(const string &name, const int initValue) {
+        _data << "\t.globl " << name << "\n"
+              << "\t.align 4\n"// TODO: different size
+              << "\t.size " << name << ", 4\n"
+              << name << ":\n"
+              << "\t.word " << initValue << "\n";
+    }
+
     inline void call(const string &funcName, size_t argOffsets) {
         comment("call " + funcName + " arg offset:(" + to_string(argOffsets) + ")");
         jal(funcName);

@@ -24,6 +24,7 @@ public:
     size_t offset;
     size_t line;    // line number of this symbol
     size_t column;  // column number of this symbol
+    string name;
     CType type;
 };
 
