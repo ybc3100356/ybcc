@@ -183,34 +183,9 @@ test 'int f(int x, int y) {    return x + y;}int main() {    int a = 2;    int b
 test 'int g(int x, int y, int z) {    int c = 3;    return x + y * z;}int f(int x, int y) {    return x * g(x, y, 11);}int main() {    int a = 2;    int b = 3;    return f(a, b);}'
 test 'int f(int x, int y) {    return 7 * y;}int main() {    int a = 2;    int b = 3;    return f(a, b);}'
 test 'int g(int x, int y, int z) {    return x;}int f(int x, int y) {    return x - g(x, y, 3);}int main() {    int a = 2;    int b = 3;    return a + f(a, b);}'
-test 'int g(int x, int y, int z) {
-    return x + y * z;
-}
+test 'int g(int x, int y, int z) {    return x + y * z;}int f(int x, int y) {    return x - g(x, y, 3);}int main() {    int a = 2;    int b = 3;    return a + f(a, b + a);}'
 
-int f(int x, int y) {
-    return x - g(x, y, 3);
-}
-
-int main() {
-    int a = 2;
-    int b = 3;
-    return a + f(a, b + a);
-}'
-
-test '
-int g(int x, int y, int z) {
-  return x+x+x+x+y+y+y+z;
-}
-
-int f(int x, int y) {
-    return x - g(13,x,y+x);
-}
-
-int main() {
-    int a = 2;
-    int b = 3;
-    return a + f(a, b + a);
-}'
+test 'int g(int x, int y, int z) {  return x+x+x+x+y+y+y+z;}int f(int x, int y) {    return x - g(13,x,y+x);}int main() {    int a = 2;    int b = 3;    return a + f(a, b + a);}'
 
 test 'int main() { return 1; 2; 3; }'
 test 'int main() { 1; return 2; 3; }'

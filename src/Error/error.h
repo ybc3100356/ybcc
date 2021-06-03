@@ -17,20 +17,19 @@ public:
     explicit Error(const char *content) : content(content) {}
 };
 
-
 class ReDef : public Error {
 public:
-    explicit ReDef(const string &symbol) : Error(("redefinition :" + symbol).c_str()) {}
+    explicit ReDef(const string &symbol) : Error(("redefinition: " + symbol).c_str()) {}
 };
 
 class UnDef : public Error {
 public:
-    explicit UnDef(const string &symbol) : Error(("undefined :" + symbol).c_str()) {}
+    explicit UnDef(const string &symbol) : Error(("undefined: " + symbol).c_str()) {}
 };
 
 class InvalidLvalue : public Error {
 public:
-    explicit InvalidLvalue(const string &ctx) : Error(("not a left value:" + ctx).c_str()) {}
+    explicit InvalidLvalue(const string &ctx) : Error(("not a left value: " + ctx).c_str()) {}
 };
 
 class InvalidBreak : public Error {
@@ -46,7 +45,7 @@ public:
 
 class InvalidFuncCall : public Error {
 public:
-    explicit InvalidFuncCall(const string &ctx = "") : Error(("invalid parameter list." + ctx).c_str()) {}
+    explicit InvalidFuncCall(const string &ctx = "") : Error(("invalid function call: " + ctx).c_str()) {}
 };
 
 class NonConstGlobalVar : public Error {
@@ -55,5 +54,19 @@ public:
             ("initializer element of " + symbol + " is not constant").c_str()) {}
 };
 
+class IncompatibleType : public Error {
+public:
+    explicit IncompatibleType(const string &ctx = "") : Error(("Incompatible parameter type: " + ctx).c_str()) {}
+};
+
+class NotImplement : public Error {
+public:
+    explicit NotImplement(const string &ctx = "") : Error(("not implement: " + ctx).c_str()) {}
+};
+
+class InvalidDereference : public Error {
+public:
+    explicit InvalidDereference(const string &ctx = "") : Error(("invalid dereference: " + ctx).c_str()) {}
+};
 
 #endif //MYCC_ERROR_H

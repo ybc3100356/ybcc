@@ -5,6 +5,8 @@
 #ifndef MYCC_DECLARATIONVISITOR_H
 #define MYCC_DECLARATIONVISITOR_H
 
+#include <utility>
+
 #include "antlr4-runtime.h"
 #include "CLexer.h"
 #include "CParser.h"
@@ -16,10 +18,30 @@
 using namespace antlrcpp;
 using namespace antlr4;
 using strings = vector<string>;
-using InitDeclarator = pair<string, InitValueType *>;
-using InitDeclarators = vector<InitDeclarator>;
+
+class InitDeclarator {
+public:
+    string name;
+    size_t pointerNum;
+    InitValuePtr initValue;
+
+    explicit InitDeclarator(string name, size_t pointers = 9, InitValuePtr initValue = InitValuePtr()) :
+            name(std::move(name)), pointerNum(pointers), initValue(initValue) {}
+};
+
 
 class DeclarationVisitor : public CBaseVisitor {
+    using InitDeclarators = vector<InitDeclarator>;
+
+    class RetType {
+    public:
+        CTypeBasePtr type;
+        bool isLeftValue;
+
+        explicit RetType(CTypeBasePtr type, bool isLeftValue = false) : type(std::move(type)),
+                                                                        isLeftValue(isLeftValue) {}
+    };
+
     string curFunc;
     vector<size_t> blockOrderStack;
     size_t blockOrder = 0;
@@ -37,13 +59,17 @@ public:
             return compound_names;
     }
 
+    antlrcpp::Any visitPrimaryExpression(CParser::PrimaryExpressionContext *ctx) override;
+
+    antlrcpp::Any visitConstant(CParser::ConstantContext *ctx) override;
+
     antlrcpp::Any visitIdentifier(CParser::IdentifierContext *ctx) override;
 
     antlrcpp::Any visitDeclaration(CParser::DeclarationContext *ctx) override;
 
     antlrcpp::Any visitDeclarationSpecifiers(CParser::DeclarationSpecifiersContext *ctx) override;
 
-    antlrcpp::Any visitDeclarationSpecifierList(CParser::DeclarationSpecifierListContext *ctx) override;
+    antlrcpp::Any visitTypeName(CParser::TypeNameContext *ctx) override;
 
     antlrcpp::Any visitSimpleTypeSpecifier(CParser::SimpleTypeSpecifierContext *ctx) override;
 
@@ -76,6 +102,12 @@ public:
     antlrcpp::Any visitBlockItem(CParser::BlockItemContext *ctx) override;
 
     antlrcpp::Any visitGeneralizedCompoundStatement(CParser::BlockContext::ParseTree *ctx);
+
+    antlrcpp::Any visitAssignmentExpression(CParser::AssignmentExpressionContext *ctx) override;
+
+    antlrcpp::Any visitUnaryExpression(CParser::UnaryExpressionContext *ctx) override;
+
+    antlrcpp::Any visitPostfixExpression(CParser::PostfixExpressionContext *ctx) override;
 };
 
 

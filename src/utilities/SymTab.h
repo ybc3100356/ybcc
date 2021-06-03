@@ -12,16 +12,16 @@
 #include "error.h"
 #include "utilities.h"
 
-using InitValueType = CParser::InitializerContext;
+using InitValuePtr = CParser::InitializerContext *;
 
 class SymTabEntry {
 public:
     explicit SymTabEntry(CType type = CType(), size_t offset = 0, size_t line = 0, size_t column = 0,
-                         InitValueType *initValue = nullptr)
+                         InitValuePtr initValue = InitValuePtr())
             : type(std::move(type)), offset(offset), line(line), column(column), initValue(initValue) {}
 
-    InitValueType *initValue;
-    size_t offset;
+    InitValuePtr initValue;   // init value ctx
+    size_t offset;  // offset in the local var area of stack
     size_t line;    // line number of this symbol
     size_t column;  // column number of this symbol
     string name;
@@ -41,8 +41,8 @@ public:
 
     void show();
 
-    void add(const string &symbol, const CType &type, size_t line, size_t column, InitValueType *initValue = nullptr,
-             bool isParam = false);
+    void add(const string &symbol, const CType &type, size_t line, size_t column,
+             InitValuePtr initValue = InitValuePtr(), bool isParam = false);
 
     const SymTabEntry &get(const string &name, size_t line = -1, size_t column = -1);
 

@@ -5,8 +5,8 @@
 #include "CParser.h"
 
 #include "SymTab.h"
-#include "AST/DeclarationVisitor.h"
-#include "CodeGen/CodeGenVisitor.h"
+#include "DeclarationVisitor.h"
+#include "CodeGenVisitor.h"
 #include "utilities.h"
 
 using namespace antlrcpp;
@@ -48,7 +48,7 @@ int main(int argc, const char *argv[]) {
         string asm_file = codeGenVisitor.visit(tree).as<string>();
         std::cout << asm_file << std::endl;
     }
-    catch (std::exception &e) {
+    catch (Error &e) {
         std::cerr << e.what() << std::endl;
     }
 

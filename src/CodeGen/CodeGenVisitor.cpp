@@ -400,6 +400,12 @@ antlrcpp::Any CodeGenVisitor::visitUnaryExpression(CParser::UnaryExpressionConte
                 rType2("not", "v0", "t0");
                 pushReg("v0");
                 return ExpType::INT;
+            } else if (op->Plus()) {    // +x,  x
+                // TODO: int promotion
+            } else if (op->Star()) {    // *x
+                throw NotImplement("*p");
+            } else if (op->And()) {     // &x
+                throw NotImplement("&x");
             }
         } else
             return visit(ctx->unaryExpression());

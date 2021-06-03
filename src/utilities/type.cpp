@@ -134,3 +134,7 @@ const string &getTypeStr(BaseType type) {
 size_t SimpleTypeNode::getSize() {
     return TypeSize[(size_t) baseType];
 }
+
+PointerTypePtr getPointerType(CTypeBasePtr pointTo) {
+    return make_shared<PointerTypeNode>(PointerTypeNode(std::move(pointTo)));
+}

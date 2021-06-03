@@ -21,7 +21,7 @@ include_directories(
         ${PROJECT_SOURCE_DIR}/src/utilities
         ${PROJECT_SOURCE_DIR}/src/Error
         ${PROJECT_SOURCE_DIR}/src/CodeGen
-        ${PROJECT_SOURCE_DIR}/src/AST
+        ${PROJECT_SOURCE_DIR}/src/Declaration
         ${PROJECT_SOURCE_DIR}/src/
 )
 
@@ -56,7 +56,7 @@ file(GLOB src_dir
         ${PROJECT_SOURCE_DIR}/grammar/gen/CVisitor.cpp
         ${PROJECT_SOURCE_DIR}/grammar/gen/CBaseVisitor.cpp
         ${PROJECT_SOURCE_DIR}/src/*.cpp
-        ${PROJECT_SOURCE_DIR}/src/AST/*.cpp
+        ${PROJECT_SOURCE_DIR}/src/Declaration/*.cpp
         ${PROJECT_SOURCE_DIR}/src/utilities/*.cpp
         ${PROJECT_SOURCE_DIR}/src/Error/*.cpp
         ${PROJECT_SOURCE_DIR}/src/CodeGen/*.cpp

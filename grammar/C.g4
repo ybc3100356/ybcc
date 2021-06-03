@@ -59,6 +59,7 @@ unaryOperator
 
 castExpression
     :   unaryExpression
+    |   '(' typeName ')' castExpression
     ;
 
 multiplicativeExpression
@@ -141,8 +142,8 @@ conditionalExpression
     ;
 
 assignmentExpression
-    :   conditionalExpression
-    |   unaryExpression assignmentOperator assignmentExpression
+    :   unaryExpression assignmentOperator assignmentExpression
+    |   conditionalExpression
     ;
 
 assignmentOperator
@@ -153,20 +154,16 @@ expression
     :   assignmentExpression (',' assignmentExpression)*
     ;
 
-constantExpression
-    :   conditionalExpression
-    ;
-
 // declaration
 declaration
     :   declarationSpecifiers initDeclaratorList? ';'
     ;
 
 declarationSpecifiers
-    :   typedefSpecifier? declarationSpecifierList
+    :   typedefSpecifier? typeName
     ;
 
-declarationSpecifierList
+typeName
     :   declarationSpecifier+
     ;
 
@@ -204,15 +201,17 @@ simpleTypeSpecifier
     |   '_Bool'
     ;
 
-// TODO: pointer
 declarator
     :
-//    pointer?
+    pointer*
     directDeclarator
     ;
 
+pointer
+    : '*'
+    ;
+
 // TODO:
-//  function declaration
 //  array declatation
 directDeclarator
     :   identifier
@@ -227,30 +226,18 @@ parameterList
     ;
 
 parameterDeclaration
-    :   declarationSpecifiers declarator
+    :   typeName declarator
     ;
 
 initializer
     :   assignmentExpression
 //    |   '{' initializerList ','? '}'
     ;
-
+//
 //initializerList
 //    :   designation? initializer (',' designation? initializer)*
 //    ;
 
-designation
-    :   designatorList '='
-    ;
-
-designatorList
-    :   designator+
-    ;
-
-designator
-    :   '[' constantExpression ']'
-    |   '.' identifier
-    ;
 
 statement
 //    : Identifier ':' statement                                  #labelStmt

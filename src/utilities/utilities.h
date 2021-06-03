@@ -21,5 +21,9 @@ using std::pair;
 using std::shared_ptr;
 using std::unique_ptr;
 using std::to_string;
+using std::make_shared;
+using std::static_pointer_cast;
+using std::dynamic_pointer_cast;
+
 constexpr int WORD_BYTES = 4; // 1 word == 4 bytes
 #endif //MYCC_UTILITIES_H

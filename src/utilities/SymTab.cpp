@@ -4,7 +4,7 @@
 
 #include "SymTab.h"
 
-void SymTab::add(const string &symbol, const CType &type, size_t line, size_t column, InitValueType *initValue,
+void SymTab::add(const string &symbol, const CType &type, size_t line, size_t column, InitValuePtr initValue,
                  bool isParam) {
     auto entry = entries.find(symbol);
     if (entry != entries.end()) {
