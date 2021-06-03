@@ -108,6 +108,8 @@ public:
     antlrcpp::Any visitUnaryExpression(CParser::UnaryExpressionContext *ctx) override;
 
     antlrcpp::Any visitPostfixExpression(CParser::PostfixExpressionContext *ctx) override;
+
+    antlrcpp::Any visitConditionalExpression(CParser::ConditionalExpressionContext *ctx) override;
 };
 
 

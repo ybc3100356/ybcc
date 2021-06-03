@@ -217,7 +217,7 @@ antlrcpp::Any DeclarationVisitor::visitUnaryExpression(CParser::UnaryExpressionC
             }
         } else if (op->Star()) {// *x, get value of a pointer
             if (rType.type->getNodeType() == BaseType::Pointer) {
-                return RetType(CTypeBasePtr(rType.type), true);
+                return RetType(CTypeBasePtr(rType.type->getChild()), true);
             } else
                 throw InvalidDereference(uExp->getText());
         } else if (op->And()) {// &x, get address of a left value
@@ -277,8 +277,23 @@ antlrcpp::Any DeclarationVisitor::visitPrimaryExpression(CParser::PrimaryExpress
         return visit(exp);
     else if (auto id = ctx->identifier())
         return visit(id);
-    else if (auto contant = ctx->constant())
-        return visit(contant);
+    else if (auto constant = ctx->constant())
+        return visit(constant);
     else
         throw NotImplement(ctx->getText());
+}
+
+antlrcpp::Any DeclarationVisitor::visitConditionalExpression(CParser::ConditionalExpressionContext *ctx) {
+    if (ctx->Question()) {
+        RetType lType = visit(ctx->expression()).as<RetType>();
+        RetType rType = visit(ctx->conditionalExpression()).as<RetType>();
+        if (!lType.type->typeCheck(rType.type)) { // should be the same
+            throw IncompatibleType("subexpression of conditional expression is not the same: "
+                                   + getTypeStr(lType.type->getNodeType()) + " and "
+                                   + getTypeStr(rType.type->getNodeType()));
+        }
+        return RetType(lType.type, true);
+    } else {
+        return visit(ctx->logicalOrExpression());
+    }
 }

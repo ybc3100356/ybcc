@@ -56,7 +56,7 @@ public:
 
 class IncompatibleType : public Error {
 public:
-    explicit IncompatibleType(const string &ctx = "") : Error(("Incompatible parameter type: " + ctx).c_str()) {}
+    explicit IncompatibleType(const string &ctx = "") : Error(("Incompatible type: " + ctx).c_str()) {}
 };
 
 class NotImplement : public Error {
