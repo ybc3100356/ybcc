@@ -23,10 +23,12 @@ class InitDeclarator {
 public:
     string name;
     size_t pointerNum;
+    vector<size_t> arraySizes;
     InitValuePtr initValue;
 
-    explicit InitDeclarator(string name, size_t pointers = 9, InitValuePtr initValue = InitValuePtr()) :
-            name(std::move(name)), pointerNum(pointers), initValue(initValue) {}
+    explicit InitDeclarator(string name, size_t pointers = 0, vector<size_t> arraySizes = {},
+                            InitValuePtr initValue = InitValuePtr()) :
+            name(std::move(name)), pointerNum(pointers), arraySizes(std::move(arraySizes)), initValue(initValue) {}
 };
 
 

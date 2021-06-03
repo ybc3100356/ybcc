@@ -132,9 +132,31 @@ const string &getTypeStr(BaseType type) {
 }
 
 size_t SimpleTypeNode::getSize() {
-    return TypeSize[(size_t) baseType];
+    return TypeSize[(size_t) nodeType];
 }
 
 PointerTypePtr getPointerType(CTypeBasePtr pointTo) {
     return make_shared<PointerTypeNode>(PointerTypeNode(std::move(pointTo)));
+}
+
+ArrayTypePtr getArrayType(CTypeBasePtr baseType, size_t size) {
+    return make_shared<ArrayTypeNode>(ArrayTypeNode(std::move(baseType), size));
+}
+
+bool CTypeNodeBase::typeCheck(const CTypeBasePtr &srcType) {
+    // wrong: getNodeType() == BaseType::Array && srcType->getNodeType() == BaseType::Pointer
+    if (nodeType == BaseType::Pointer && srcType->nodeType == BaseType::Pointer) {
+        return childNode->typeCheck(srcType->childNode);
+    } else if (nodeType == BaseType::Array && srcType->nodeType == BaseType::Array) {
+        if (dynamic_cast<ArrayTypeNode *>(this)->getSingleSize() ==
+            dynamic_pointer_cast<ArrayTypeNode>(srcType)->getSingleSize())
+            return childNode->typeCheck(srcType->childNode);
+    } else if (nodeType == BaseType::Pointer && srcType->nodeType == BaseType::Array) {
+        return childNode->nodeType != BaseType::Pointer; // need to do this by cast
+    } else if (nodeType == BaseType::Error && srcType->nodeType == BaseType::Error) {
+        return false;
+    } else if (nodeType == srcType->nodeType) {
+        return true;
+    }
+    return false;
 }

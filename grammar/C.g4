@@ -21,8 +21,8 @@ postfixExpression
     :
     primaryExpression
     (
-//    '[' expression ']'
-//    |
+    '[' expression ']'
+    |
     '(' argumentExpressionList? ')'
 //    |
 //    postfixOperator
@@ -205,14 +205,17 @@ declarator
     :
     pointer*
     directDeclarator
+    array*
+    ;
+
+array
+    :   ('[' IntegerConstant ']')
     ;
 
 pointer
     : '*'
     ;
 
-// TODO:
-//  array declatation
 directDeclarator
     :   identifier
     ;

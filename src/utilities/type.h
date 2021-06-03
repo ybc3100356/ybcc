@@ -93,27 +93,22 @@ class CTypeNodeBase {
 public:
     virtual BaseType getNodeType() = 0;
 
+    virtual BaseType getBaseType() = 0;
+
     virtual size_t getSize() = 0;
 
 //    virtual CTypeBasePtr typeCast(CTypeBasePtr valueType) = 0;
 
-    bool typeCheck(const CTypeBasePtr &srcType) {
-        if (srcType->getNodeType() == BaseType::Pointer && getNodeType() == BaseType::Pointer) {
-            return childNode->typeCheck(srcType->childNode);
-        } else if (srcType->getNodeType() == getNodeType()) {
-            return true;
-        }
-        return false;
-    }
+    bool typeCheck(const CTypeBasePtr &srcType);
 
     CTypeBasePtr getChild() { return childNode; }
 
     explicit CTypeNodeBase(BaseType baseType = BaseType::Error, CTypeBasePtr childNode = nullptr)
-            : childNode(std::move(childNode)), baseType(baseType) {}
+            : childNode(std::move(childNode)), nodeType(baseType) {}
 
 protected:
     CTypeBasePtr childNode;
-    BaseType baseType;
+    BaseType nodeType;
 };
 
 class CType {
@@ -140,7 +135,9 @@ protected:
 
 class SimpleTypeNode : public CTypeNodeBase {
 public:
-    BaseType getNodeType() override { return baseType; }
+    BaseType getNodeType() override { return nodeType; }
+
+    BaseType getBaseType() override { return nodeType; }
 
     size_t getSize() override;
 
@@ -152,9 +149,9 @@ using SimpleTypePtr = shared_ptr<SimpleTypeNode>;
 class FunctionTypeNode : public CTypeNodeBase {
     vector<CTypeBasePtr> paramList;
 public:
-    BaseType getNodeType() override {
-        return BaseType::Function;
-    }
+    BaseType getNodeType() override { return BaseType::Function; }
+
+    BaseType getBaseType() override { return nodeType; }
 
     BaseType getReturnType() {
         return childNode->getNodeType();
@@ -176,20 +173,36 @@ public:
     explicit PointerTypeNode(CTypeBasePtr childNode)
             : CTypeNodeBase(BaseType::Pointer, std::move(childNode)) {}
 
+    BaseType getBaseType() override { return childNode->getBaseType(); }
+
     size_t getSize() override { return WORD_BYTES; }
 
-    BaseType getNodeType() override {
-        return BaseType::Pointer;
-    }
+    BaseType getNodeType() override { return BaseType::Pointer; }
 };
 
 using PointerTypePtr = shared_ptr<PointerTypeNode>;
 
-PointerTypePtr getPointerType(CTypeBasePtr pointTo);
-
-class NoneType : public CTypeNodeBase {
+class ArrayTypeNode : public CTypeNodeBase {
+    size_t size;
 public:
-    explicit NoneType()
+    explicit ArrayTypeNode(CTypeBasePtr childNode, size_t size)
+            : CTypeNodeBase(BaseType::Array, std::move(childNode)), size(size) {}
+
+    size_t getSize() override { return size * childNode->getSize(); }
+
+    size_t getSingleSize() const { return size; }
+
+    BaseType getNodeType() override { return BaseType::Array; }
+
+    BaseType getBaseType() override { return childNode->getBaseType(); }
+
+};
+
+using ArrayTypePtr = shared_ptr<ArrayTypeNode>;
+
+class NoneTypeNode : public CTypeNodeBase {
+public:
+    explicit NoneTypeNode()
             : CTypeNodeBase() {}
 
     BaseType getNodeType() override {
@@ -197,38 +210,30 @@ public:
     }
 };
 
-using NoneTypePtr = shared_ptr<NoneType>;
+using NoneTypePtr = shared_ptr<NoneTypeNode>;
+
+
+ArrayTypePtr getArrayType(CTypeBasePtr baseType, size_t size);
+
+PointerTypePtr getPointerType(CTypeBasePtr pointTo);
+
 
 //class StructTypeNode : public CTypeNode {
 //public:
-//    BaseType baseType; // struct or union
+//    BaseType nodeType; // struct or union
 //    CompoundTypesPtr childNodes;
 //
-//    explicit StructTypeNode(const CTypeBasePtr& childNode, BaseType baseType = BaseType::Error)
-//            : CTypeNode(*childNode), baseType(baseType), childNodes(nullptr) {}
+//    explicit StructTypeNode(const CTypeBasePtr& childNode, BaseType nodeType = BaseType::Error)
+//            : CTypeNode(*childNode), nodeType(nodeType), childNodes(nullptr) {}
 //
 //    BaseType getNodeType() override {
-//        return baseType;
+//        return nodeType;
 //    }
 //};
 //
 //using StructTypeNodePtr = shared_ptr<StructTypeNode>;
 //
 
-//
-//class ArrayTypeNode : public CTypeNode {
-//public:
-//    CTypeBasePtr arrayBaseNode;
-//
-//    explicit ArrayTypeNode(const CTypeBasePtr &childNode)
-//            : CTypeNode(*childNode) {}
-//
-//    BaseType getNodeType() override {
-//        return BaseType::Array;
-//    }
-//};
-//
-//using ArrayTypeNodePtr = shared_ptr<ArrayTypeNode>;
 
 BaseType getBaseType(TypeSpecifiers &specifiers);
 

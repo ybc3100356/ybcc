@@ -69,4 +69,14 @@ public:
     explicit InvalidDereference(const string &ctx = "") : Error(("invalid dereference: " + ctx).c_str()) {}
 };
 
+class InvalidArraySize : public Error {
+public:
+    explicit InvalidArraySize(const string &ctx = "") : Error(("invalid array size: " + ctx).c_str()) {}
+};
+
+class InvalidArrayList : public Error {
+public:
+    explicit InvalidArrayList(const string &ctx = "") : Error(("invalid array list: " + ctx).c_str()) {}
+};
+
 #endif //MYCC_ERROR_H

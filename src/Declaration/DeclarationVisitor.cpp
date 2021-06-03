@@ -28,6 +28,9 @@ antlrcpp::Any DeclarationVisitor::visitDeclaration(CParser::DeclarationContext *
     for (auto &declarator : declarators) {
         auto symbol = compoundCtx + declarator.name;
         auto typeTree = type.getTypeTree();
+        for (int i = (int) declarator.arraySizes.size() - 1; i >= 0; i--) {
+            typeTree = static_pointer_cast<CTypeNodeBase>(getArrayType(typeTree, declarator.arraySizes[i]));
+        }
         for (int i = 0; i < declarator.pointerNum; i++) {
             typeTree = static_pointer_cast<CTypeNodeBase>(getPointerType(typeTree));
         }
@@ -58,7 +61,18 @@ antlrcpp::Any DeclarationVisitor::visitInitDeclarator(CParser::InitDeclaratorCon
     }
     auto declarator = ctx->declarator();
     auto pointers = declarator->pointer();
-    return InitDeclarator(declarator->directDeclarator()->identifier()->getText(), pointers.size(), initValue);
+    auto arrays = declarator->array();
+    vector<size_t> arraySizes;
+    arraySizes.reserve(arrays.size());
+    for (auto array:arrays) {
+        int size = atoi(array->IntegerConstant()->getText().c_str());
+        if (size < 0) {
+            throw InvalidArraySize(to_string(size));
+        }
+        arraySizes.push_back(size);
+    }
+    return InitDeclarator(declarator->directDeclarator()->identifier()->getText(),
+                          pointers.size(), arraySizes, initValue);
 }
 
 antlrcpp::Any DeclarationVisitor::visitInitializer(CParser::InitializerContext *ctx) {
@@ -232,10 +246,26 @@ antlrcpp::Any DeclarationVisitor::visitUnaryExpression(CParser::UnaryExpressionC
 }
 
 antlrcpp::Any DeclarationVisitor::visitPostfixExpression(CParser::PostfixExpressionContext *ctx) {
-    auto parens = ctx->LeftParen();
-    if (parens.empty()) {
-        return visit(ctx->primaryExpression());
-    } else { // if '(' argumentExpressionList? ')', TODO: continuous postfix f()()[]
+    if (!ctx->LeftBracket().empty()) {  // array
+        auto exps = ctx->expression();
+        auto id = ctx->primaryExpression()->identifier();
+        auto arrayEntry = SymTab::getInstance().get(getCompoundContext() + id->getText());
+        auto resultType = arrayEntry.type.getTypeTree();
+        for (auto exp : exps) {
+            if (visit(exp).as<RetType>().type->getNodeType() != BaseType::SInt) {
+                throw InvalidArraySize(exp->getText());
+            }
+            if (resultType->getNodeType() == BaseType::Array)
+                resultType = resultType->getChild();
+            else {
+                throw InvalidArrayList(ctx->getText());
+            }
+        }
+        if (resultType->getNodeType() != BaseType::Array)
+            return RetType(resultType, true);
+        else
+            return RetType(resultType, false);
+    } else if (!ctx->LeftParen().empty()) { // TODO: continuous postfix f()()[]
         auto argExpList = ctx->argumentExpressionList();
         if (auto id = ctx->primaryExpression()->identifier()) { // TODO: call func by func ptr
             auto funcName = id->getText();
@@ -269,6 +299,8 @@ antlrcpp::Any DeclarationVisitor::visitPostfixExpression(CParser::PostfixExpress
             return RetType(funcType->getChild());
         } else
             throw NotImplement("please call function by the name");
+    } else { // not func call
+        return visit(ctx->primaryExpression());
     }
 }
 
