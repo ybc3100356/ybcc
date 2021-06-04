@@ -160,3 +160,25 @@ bool CTypeNodeBase::typeCheck(const CTypeBasePtr &srcType) {
     }
     return false;
 }
+
+bool isSameType(const CTypeBasePtr &first, const CTypeBasePtr &second) {
+    auto firstChild = first->getChild();
+    auto secondChild = second->getChild();
+    if (first->getNodeType() == BaseType::Array && second->getNodeType() == BaseType::Array) {
+        if (dynamic_pointer_cast<ArrayTypeNode>(first)->getSingleSize() ==
+            dynamic_pointer_cast<ArrayTypeNode>(second)->getSingleSize())
+            return isSameType(firstChild, secondChild);
+        else
+            return false;
+    }
+    return first->getNodeType() == second->getNodeType() && (
+            ((firstChild == nullptr && secondChild == nullptr) ||
+             (firstChild != nullptr && secondChild != nullptr && isSameType(firstChild, secondChild))));
+}
+
+/*
+ * ptr - ptr -> int
+ * ptr + int -> ptr
+ * int + ptr -> ptr
+ * ptr - int -> ptr
+ * */

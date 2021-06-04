@@ -59,7 +59,7 @@ unaryOperator
 
 castExpression
     :   unaryExpression
-    |   '(' typeName ')' castExpression
+    |   '(' typeName pointer* ')' castExpression
     ;
 
 multiplicativeExpression

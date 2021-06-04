@@ -34,6 +34,17 @@ antlrcpp::Any DeclarationVisitor::visitDeclaration(CParser::DeclarationContext *
         for (int i = 0; i < declarator.pointerNum; i++) {
             typeTree = static_pointer_cast<CTypeNodeBase>(getPointerType(typeTree));
         }
+        if (declarator.initValue) {
+            RetType initValueType = visit(declarator.initValue).as<RetType>();
+            if (!typeTree->typeCheck(initValueType.type)) {
+                if (typeTree->getNodeType() == BaseType::Pointer &&
+                    initValueType.type->getNodeType() == BaseType::Pointer) {
+                    throw IncompatibleType("different kind of pointer -- " + ctx->getText());
+                } else
+                    throw IncompatibleType(getTypeStr(typeTree->getNodeType()) + " and "
+                                           + getTypeStr(initValueType.type->getNodeType()) + " -- " + ctx->getText());
+            }
+        }
         SymTab::getInstance().add(symbol, CType(typeTree, bool(type.isTypedef())), line, column, declarator.initValue);
         SymTab::getInstance().get(compoundCtx + declarator.name, line, column);
     }
@@ -57,7 +68,7 @@ antlrcpp::Any DeclarationVisitor::visitInitDeclaratorList(CParser::InitDeclarato
 antlrcpp::Any DeclarationVisitor::visitInitDeclarator(CParser::InitDeclaratorContext *ctx) {
     auto initValue = InitValuePtr();
     if (auto i = ctx->initializer()) {
-        initValue = visit(i).as<InitValuePtr>();
+        initValue = ctx->initializer();
     }
     auto declarator = ctx->declarator();
     auto pointers = declarator->pointer();
@@ -66,7 +77,7 @@ antlrcpp::Any DeclarationVisitor::visitInitDeclarator(CParser::InitDeclaratorCon
     arraySizes.reserve(arrays.size());
     for (auto array:arrays) {
         int size = atoi(array->IntegerConstant()->getText().c_str());
-        if (size < 0) {
+        if (size <= 0) {
             throw InvalidArraySize(to_string(size));
         }
         arraySizes.push_back(size);
@@ -76,7 +87,7 @@ antlrcpp::Any DeclarationVisitor::visitInitDeclarator(CParser::InitDeclaratorCon
 }
 
 antlrcpp::Any DeclarationVisitor::visitInitializer(CParser::InitializerContext *ctx) {
-    return (InitValuePtr) ctx;
+    return visit(ctx->assignmentExpression());
 }
 
 antlrcpp::Any DeclarationVisitor::visitTypeName(CParser::TypeNameContext *ctx) {
@@ -252,16 +263,16 @@ antlrcpp::Any DeclarationVisitor::visitPostfixExpression(CParser::PostfixExpress
         auto arrayEntry = SymTab::getInstance().get(getCompoundContext() + id->getText());
         auto resultType = arrayEntry.type.getTypeTree();
         for (auto exp : exps) {
-            if (visit(exp).as<RetType>().type->getNodeType() != BaseType::SInt) {
+            if (visit(exp).as<RetType>().type->getNodeType() != BaseType::SInt) { // index should be int
                 throw InvalidArraySize(exp->getText());
             }
             if (resultType->getNodeType() == BaseType::Array)
                 resultType = resultType->getChild();
-            else {
+            else {// to many brackets
                 throw InvalidArrayList(ctx->getText());
             }
         }
-        if (resultType->getNodeType() != BaseType::Array)
+        if (resultType->getNodeType() != BaseType::Array) // it's left value only when it gets the base type of array
             return RetType(resultType, true);
         else
             return RetType(resultType, false);
@@ -327,5 +338,66 @@ antlrcpp::Any DeclarationVisitor::visitConditionalExpression(CParser::Conditiona
         return RetType(lType.type, true);
     } else {
         return visit(ctx->logicalOrExpression());
+    }
+}
+
+DeclarationVisitor::RetType
+DeclarationVisitor::getRetType(const CTypeBasePtr &first, const CTypeBasePtr &second, size_t op) {
+    if (first->getNodeType() == BaseType::Pointer && second->getNodeType() == BaseType::Pointer) {
+        if (isSameType(first->getChild(), second->getChild()))
+            if (op == CLexer::Minus) {
+                return RetType(static_pointer_cast<CTypeNodeBase>(
+                        make_shared<SimpleTypeNode>(SimpleTypeNode(BaseType::SInt))));
+            } else {
+                throw IncompatibleType("operator between pointers should be minus");
+            }
+        else throw IncompatibleType("not the same kind of pointer");
+    } else if (first->getNodeType() == BaseType::Pointer && second->getNodeType() == BaseType::SInt) {
+        if (op == CLexer::Minus || op == CLexer::Plus) {
+            return RetType(first);
+        } else {
+            throw IncompatibleType("pointer can only add or minus by an integer");
+        }
+    } else if (first->getNodeType() == BaseType::SInt && second->getNodeType() == BaseType::Pointer) {
+        if (op == CLexer::Plus) {
+            return RetType(second);
+        } else {
+            throw IncompatibleType("integer can only add by an pointer");
+        }
+    } else if (first->getNodeType() == BaseType::Array || second->getNodeType() == BaseType::Array)
+        throw IncompatibleType("array arithmetic is not supported");
+    else if (first->getNodeType() == BaseType::SInt || second->getNodeType() == BaseType::SInt) {// TODO: type cast
+        return RetType(first);
+    } else
+        throw NotImplement("unsupported operation");
+}
+
+
+antlrcpp::Any DeclarationVisitor::visitAdditiveExpression(CParser::AdditiveExpressionContext *ctx) {
+    auto exps = ctx->multiplicativeExpression();
+    auto ops = ctx->additiveOperator();
+    RetType firstExp = visit(exps[0]).as<RetType>();
+    RetType secondExp{};
+    if (!ops.empty()) {
+        for (int i = 0; i < ops.size(); i++) {
+            secondExp = visit(exps[i + 1]).as<RetType>();
+            firstExp = getRetType(firstExp.type, secondExp.type,
+                                  dynamic_cast<tree::TerminalNode *>(ops[i]->children.front())->getSymbol()->getType());
+        }
+    }
+    return firstExp;
+}
+
+antlrcpp::Any DeclarationVisitor::visitCastExpression(CParser::CastExpressionContext *ctx) {
+    if (auto uExp = ctx->unaryExpression())
+        return visit(uExp);
+    else {
+        auto pointers = ctx->pointer();
+        auto dst = visit(ctx->typeName()).as<CTypeBasePtr>();
+        RetType src = visit(ctx->castExpression()).as<RetType>();
+        for (int i = 0; i < pointers.size(); i++) {
+            dst = static_pointer_cast<CTypeNodeBase>(getPointerType(dst));
+        }
+        return RetType(src.type->typeCast(dst));
     }
 }

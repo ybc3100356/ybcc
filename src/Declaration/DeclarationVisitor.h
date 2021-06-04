@@ -40,10 +40,11 @@ class DeclarationVisitor : public CBaseVisitor {
         CTypeBasePtr type;
         bool isLeftValue;
 
-        explicit RetType(CTypeBasePtr type, bool isLeftValue = false) : type(std::move(type)),
-                                                                        isLeftValue(isLeftValue) {}
+        explicit RetType(CTypeBasePtr type = NoneTypePtr(), bool isLeftValue = false) : type(std::move(type)),
+                                                                                        isLeftValue(isLeftValue) {}
     };
 
+    static RetType getRetType(const CTypeBasePtr &first, const CTypeBasePtr &second, size_t op);
     string curFunc;
     vector<size_t> blockOrderStack;
     size_t blockOrder = 0;
@@ -112,6 +113,10 @@ public:
     antlrcpp::Any visitPostfixExpression(CParser::PostfixExpressionContext *ctx) override;
 
     antlrcpp::Any visitConditionalExpression(CParser::ConditionalExpressionContext *ctx) override;
+
+    antlrcpp::Any visitAdditiveExpression(CParser::AdditiveExpressionContext *ctx) override;
+
+    antlrcpp::Any visitCastExpression(CParser::CastExpressionContext *ctx) override;
 };
 
 

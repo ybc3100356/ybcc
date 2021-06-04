@@ -8,6 +8,7 @@
 #include <utility>
 
 #include "utilities.h"
+#include "error.h"
 #include "CLexer.h"
 
 using namespace antlrcpp;
@@ -97,7 +98,9 @@ public:
 
     virtual size_t getSize() = 0;
 
-//    virtual CTypeBasePtr typeCast(CTypeBasePtr valueType) = 0;
+    virtual CTypeBasePtr typeCast(const CTypeBasePtr &castTo) {
+        return static_pointer_cast<CTypeNodeBase>(castTo);
+    };
 
     bool typeCheck(const CTypeBasePtr &srcType);
 
@@ -138,6 +141,7 @@ public:
     BaseType getNodeType() override { return nodeType; }
 
     BaseType getBaseType() override { return nodeType; }
+
 
     size_t getSize() override;
 
@@ -217,7 +221,7 @@ ArrayTypePtr getArrayType(CTypeBasePtr baseType, size_t size);
 
 PointerTypePtr getPointerType(CTypeBasePtr pointTo);
 
-
+bool isSameType(const CTypeBasePtr &first, const CTypeBasePtr &second);
 //class StructTypeNode : public CTypeNode {
 //public:
 //    BaseType nodeType; // struct or union
