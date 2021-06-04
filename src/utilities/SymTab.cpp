@@ -5,7 +5,7 @@
 #include "SymTab.h"
 
 void SymTab::add(const string &symbol, const CType &type, size_t line, size_t column, InitValuePtr initValue,
-                 bool isParam) {
+                 bool isParam, bool isArray) {
     auto entry = entries.find(symbol);
     if (entry != entries.end()) {
         throw ReDef(symbol);
@@ -17,8 +17,13 @@ void SymTab::add(const string &symbol, const CType &type, size_t line, size_t co
         } else {
             auto pos = symbol.find_first_of('@');
             auto funcName = symbol.substr(0, pos);
-            entries.insert({symbol, SymTabEntry(type, _offsets[funcName], line, column, initValue)});
-            _offsets[funcName] += type.getTypeTree()->getSize() / 4;
+            if (isArray) {
+                _offsets[funcName] += type.getTypeTree()->getSize() / 4;
+                entries.insert({symbol, SymTabEntry(type, _offsets[funcName], line, column, initValue)});
+            } else {
+                entries.insert({symbol, SymTabEntry(type, _offsets[funcName], line, column, initValue)});
+                _offsets[funcName] += type.getTypeTree()->getSize() / 4;
+            }
             if (isParam)
                 _params[funcName].push_back(symbol);
         }

@@ -21,10 +21,18 @@ antlrcpp::Any CodeGenVisitor::visitGlobalDeclaration(CParser::GlobalDeclarationC
             auto name = id->getText();
             // must be constant
             auto initValue = 0;
-            auto initCtx = SymTab::getInstance().get(name).initValue;
-            if (initCtx != nullptr)
-                initValue = atoi(initCtx->getText().c_str());
-            globalVar(name, initValue);
+            auto entry = SymTab::getInstance().get(name);
+            auto initCtx = entry.initValue;
+            if (entry.type.getTypeTree()->getNodeType() == BaseType::Array) {
+                globalArray(name, entry.type.getSize());
+            } else {
+                if (initCtx != nullptr) {
+                    initValue = atoi(initCtx->getText().c_str());
+                    globalVar(name, initValue);
+                } else {
+                    globalVar(name);
+                }
+            }
         }
     }
     return ExpType::UNDEF;
@@ -72,6 +80,7 @@ antlrcpp::Any CodeGenVisitor::visitFunctionDefinition(CParser::FunctionDefinitio
     }
     blockOrderStack.clear();
     blockOrder = 0;
+    curFunc = "";
     return ExpType::UNDEF;
 }
 
@@ -274,15 +283,12 @@ antlrcpp::Any CodeGenVisitor::visitPostfixExpression(CParser::PostfixExpressionC
     if (!ctx->LeftBracket().empty()) {  // array
         comment("index operator []:");
         auto exps = ctx->expression();
-        auto id = ctx->primaryExpression()->identifier()->getText();
-        auto arrayEntry = SymTab::getInstance().get(getCompoundContext() + id);
+        auto id = ctx->primaryExpression()->identifier();
+        auto arrayEntry = SymTab::getInstance().get(getCompoundContext() + id->getText());
         auto resultType = arrayEntry.type.getTypeTree();
-        // frame address of array
-        comment("push symbol address: " + id +
-                "(" + to_string(arrayEntry.line) + ", " + to_string(arrayEntry.column) + ")");
-        pushFrameAddr(arrayEntry.offset);
+        visit(id);
         if (resultType->getNodeType() == BaseType::Pointer) {
-            comment("use symbol " + id +
+            comment("use symbol " + id->getText() +
                     "(" + to_string(arrayEntry.line) + ", " + to_string(arrayEntry.column) + ")" +
                     " as array, load pointer first");
             load();
@@ -302,7 +308,7 @@ antlrcpp::Any CodeGenVisitor::visitPostfixExpression(CParser::PostfixExpressionC
             rType2("mult", "t2", "t3");           // index * size
             rType1("mflo", "t2");
             popReg("t3");                               // base address
-            rType3("sub", "t2", "t3", "t2");  // base address + index * size ( base[index] )
+            rType3("add", "t2", "t3", "t2");  // base address + index * size ( base[index] )
             pushReg("t2");                              // address of base[index]
         }
         if (resultType->getNodeType() != BaseType::Array) // it's left value only when it gets the base type of array
@@ -511,13 +517,11 @@ antlrcpp::Any CodeGenVisitor::visitAdditiveExpression(CParser::AdditiveExpressio
                 rType->getNodeType() == BaseType::SInt) { // ptr + int
                 comment("ptr + int");
                 iType("sll", "t0", "t0", 2);        // ptr + int * size
-                rType3("sub", "t0", "0", "t0");      // minus t0
             } else if (lType->getNodeType() == BaseType::SInt &&
                        (rType->getNodeType() == BaseType::Pointer ||
                         rType->getNodeType() == BaseType::Array)) { // int + ptr
                 comment("int + ptr");
                 iType("sll", "s0", "s0", 2);
-                rType3("sub", "s0", "0", "s0");
             } else if (lType->getNodeType() == BaseType::Pointer &&
                        rType->getNodeType() == BaseType::Pointer) { // ptr - ptr
                 comment("ptr - ptr");

@@ -45,7 +45,8 @@ antlrcpp::Any DeclarationVisitor::visitDeclaration(CParser::DeclarationContext *
                                            + getTypeStr(initValueType.type->getNodeType()) + " -- " + ctx->getText());
             }
         }
-        SymTab::getInstance().add(symbol, CType(typeTree, bool(type.isTypedef())), line, column, declarator.initValue);
+        SymTab::getInstance().add(symbol, CType(typeTree, bool(type.isTypedef())), line, column, declarator.initValue,
+                                  false, typeTree->getNodeType() == BaseType::Array);
         SymTab::getInstance().get(symbol, line, column);
     }
     return RetType(NoneTypePtr());
@@ -132,6 +133,7 @@ antlrcpp::Any DeclarationVisitor::visitFunctionDefinition(CParser::FunctionDefin
     visit(ctx->compoundStatement());
     blockOrderStack.clear();
     blockOrder = 0;
+    curFunc = "";
     return RetType(NoneTypePtr());
 }
 

@@ -175,11 +175,24 @@ private:
 
     // IR
     inline void globalVar(const string &name, const int initValue) {
-        _data << "\t.globl " << name << "\n"
-              << "\t.align 4\n"// TODO: different size
-              << "\t.size " << name << ", 4\n"
+        _data << ".globl " << name << "\n"
+              << "\t.align 4\n"
               << name << ":\n"
               << "\t.word " << initValue << "\n";
+    }
+
+    inline void globalVar(const string &name) {
+        _data << ".globl " << name << "\n"
+              << "\t.align 4\n"
+              << name << ":\n"
+              << "\t.space 4\n";
+    }
+
+    inline void globalArray(const string &name, const size_t size) {
+        _data << ".globl " << name << "\n"
+              << "\t.align 4\n"
+              << name << ":\n"
+              << "\t.space " << size << "\n";
     }
 
     inline void call(const string &funcName, size_t argOffsets) {

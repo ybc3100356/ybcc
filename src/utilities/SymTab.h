@@ -55,7 +55,7 @@ public:
     void show();
 
     void add(const string &symbol, const CType &type, size_t line, size_t column,
-             InitValuePtr initValue = InitValuePtr(), bool isParam = false);
+             InitValuePtr initValue = InitValuePtr(), bool isParam = false, bool isArray = false);
 
     const SymTabEntry &get(const string &name, size_t line = -1, size_t column = -1);
 
