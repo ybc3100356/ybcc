@@ -460,11 +460,37 @@ antlrcpp::Any CodeGenVisitor::visitUnaryExpression(CParser::UnaryExpressionConte
     return ExpType::UNDEF;
 }
 
-
-// antlr4::ParserRuleContext
 template<class T1, typename T2>
 antlrcpp::Any CodeGenVisitor::genBinaryExpression(vector<T1 *> exps, vector<T2 *> ops) {
     auto exp0Type = visit(exps[0]).template as<ExpType>();
+    if (!ops.empty()) {
+        comment("binary expression:");
+        if (exp0Type == ExpType::LEFT) {
+            load();
+        }
+        popReg("t0");
+        pushReg("s0");// save $s0, and use it as accumulator in the following binary expressions
+        mov("s0", "t0");
+        for (int i = 0; i < ops.size(); i++) {
+            if (visit(exps[i + 1]).template as<ExpType>() == ExpType::LEFT) {
+                load();
+            }
+            popReg("t0");
+            genBinaryExpressionAsm(
+                    dynamic_cast<tree::TerminalNode *>(ops[i]->children.front())->getSymbol()->getType());
+        }
+        mov("v0", "s0");
+        popReg("s0");
+        pushReg("v0");
+        return ExpType::RIGHT;
+    }
+    return exp0Type;
+}
+
+antlrcpp::Any CodeGenVisitor::visitAdditiveExpression(CParser::AdditiveExpressionContext *ctx) {
+    auto exps = ctx->multiplicativeExpression();
+    auto ops = ctx->additiveOperator();
+    auto exp0Type = visit(exps[0]).as<ExpType>();
     if (!ops.empty()) {
         comment("binary expression:");
         auto lType = SymTab::getInstance().getTypeFromQueue();
@@ -476,7 +502,7 @@ antlrcpp::Any CodeGenVisitor::genBinaryExpression(vector<T1 *> exps, vector<T2 *
         mov("s0", "t0");
         for (int i = 0; i < ops.size(); i++) {
             auto rType = SymTab::getInstance().getTypeFromQueue();
-            if (visit(exps[i + 1]).template as<ExpType>() == ExpType::LEFT) {
+            if (visit(exps[i + 1]).as<ExpType>() == ExpType::LEFT) {
                 load();
             }
             popReg("t0");
@@ -497,7 +523,6 @@ antlrcpp::Any CodeGenVisitor::genBinaryExpression(vector<T1 *> exps, vector<T2 *
                 comment("ptr - ptr");
                 ptrSub = true;
             }
-
             genBinaryExpressionAsm(
                     dynamic_cast<tree::TerminalNode *>(ops[i]->children.front())->getSymbol()->getType());
             if (ptrSub) { // ptr - ptr
@@ -510,10 +535,6 @@ antlrcpp::Any CodeGenVisitor::genBinaryExpression(vector<T1 *> exps, vector<T2 *
         popReg("s0");
         pushReg("v0");
         return ExpType::RIGHT;
-        if (lType->getNodeType() == BaseType::Pointer)
-            return ExpType::LEFT;
-        else
-            return ExpType::RIGHT;
     }
     return exp0Type;
 }
@@ -585,11 +606,6 @@ void CodeGenVisitor::genBinaryExpressionAsm(size_t tokenType) {
             assert(false);
     }
 };
-
-antlrcpp::Any CodeGenVisitor::visitAdditiveExpression(CParser::AdditiveExpressionContext *ctx) {
-    // TODO: pointer add
-    return genBinaryExpression(ctx->multiplicativeExpression(), ctx->additiveOperator());
-}
 
 antlrcpp::Any CodeGenVisitor::visitMultiplicativeExpression(CParser::MultiplicativeExpressionContext *ctx) {
     return genBinaryExpression(ctx->castExpression(), ctx->multiplicativeOperator());
