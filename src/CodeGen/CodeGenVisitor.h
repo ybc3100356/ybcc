@@ -256,7 +256,7 @@ private:
     antlrcpp::Any genBinaryExpression(vector<T1 *> exps, vector<T2 *> ops);
 
     enum class ExpType {
-        INT, LEFT, RIGHT, PTR, ARR, UNDEF
+        UNDEF, INT, LEFT, RIGHT, PTR, ARR
     };
 };
 

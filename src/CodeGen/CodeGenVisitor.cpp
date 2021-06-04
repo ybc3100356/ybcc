@@ -263,15 +263,53 @@ antlrcpp::Any CodeGenVisitor::visitIdentifier(CParser::IdentifierContext *ctx) {
         comment("push symbol addr: " + symbol + "(" + to_string(entry.line) + ", " + to_string(entry.column) + ")");
         pushFrameAddr(entry.offset);
     }
-    return ExpType::LEFT;
+    if (entry.type.getTypeTree()->getNodeType() == BaseType::Array)
+        return ExpType::ARR;
+    else
+        return ExpType::LEFT;
 }
 
 antlrcpp::Any CodeGenVisitor::visitPostfixExpression(CParser::PostfixExpressionContext *ctx) {
     auto argExpList = ctx->argumentExpressionList();
-    auto parens = ctx->LeftParen();
-    if (parens.empty()) {
-        return visit(ctx->primaryExpression());
-    } else { // if '(' argumentExpressionList? ')'
+    if (!ctx->LeftBracket().empty()) {  // array
+        comment("index operator []:");
+        auto exps = ctx->expression();
+        auto id = ctx->primaryExpression()->identifier()->getText();
+        auto arrayEntry = SymTab::getInstance().get(getCompoundContext() + id);
+        auto resultType = arrayEntry.type.getTypeTree();
+        // frame address of array
+        comment("push symbol address: " + id +
+                "(" + to_string(arrayEntry.line) + ", " + to_string(arrayEntry.column) + ")");
+        pushFrameAddr(arrayEntry.offset);
+        if (resultType->getNodeType() == BaseType::Pointer) {
+            comment("use symbol " + id +
+                    "(" + to_string(arrayEntry.line) + ", " + to_string(arrayEntry.column) + ")" +
+                    " as array, load pointer first");
+            load();
+        }
+        for (auto exp : exps) {
+            if (visit(exp).as<ExpType>() == ExpType::LEFT) { // index
+                load();
+            }
+            if (resultType->getNodeType() == BaseType::Array || resultType->getNodeType() == BaseType::Pointer) {
+                resultType = resultType->getChild();
+            } else {// to many brackets
+                assert(false);
+            }
+            popReg("t3");                               // array index
+            comment("push array size: " + to_string(resultType->getSize()));
+            li("t2", (int) resultType->getSize());      // size
+            rType2("mult", "t2", "t3");           // index * size
+            rType1("mflo", "t2");
+            popReg("t3");                               // base address
+            rType3("sub", "t2", "t3", "t2");  // base address + index * size ( base[index] )
+            pushReg("t2");                              // address of base[index]
+        }
+        if (resultType->getNodeType() != BaseType::Array) // it's left value only when it gets the base type of array
+            return ExpType::LEFT;
+        else
+            return ExpType::RIGHT;
+    } else if (!ctx->LeftParen().empty()) {
         if (auto id = ctx->primaryExpression()->identifier()) {
             auto funcName = id->getText();
             auto funcEntry = SymTab::getInstance().get(funcName);
@@ -297,6 +335,8 @@ antlrcpp::Any CodeGenVisitor::visitPostfixExpression(CParser::PostfixExpressionC
 
         } else
             throw InvalidFuncCall();
+    } else { // not func call or array
+        return visit(ctx->primaryExpression());
     }
     return ExpType::RIGHT;
 }
@@ -422,11 +462,12 @@ antlrcpp::Any CodeGenVisitor::visitUnaryExpression(CParser::UnaryExpressionConte
 
 template<typename T1, typename T2>
 antlrcpp::Any CodeGenVisitor::genBinaryExpression(vector<T1 *> exps, vector<T2 *> ops) {
-    comment("binary expression:");
-    if (visit(exps[0]).template as<ExpType>() == ExpType::LEFT) {
-        load();
-    }
+    auto exp0Type = visit(exps[0]).template as<ExpType>();
     if (!ops.empty()) {
+        comment("binary expression:");
+        if (exp0Type == ExpType::LEFT) {
+            load();
+        }
         popReg("t0");
         pushReg("s0");// save $s0, and use it as accumulator in the following binary expressions
         mov("s0", "t0");
@@ -443,7 +484,7 @@ antlrcpp::Any CodeGenVisitor::genBinaryExpression(vector<T1 *> exps, vector<T2 *
         pushReg("v0");
         return ExpType::RIGHT;
     }
-    return ExpType::UNDEF;
+    return exp0Type;
 }
 
 void CodeGenVisitor::genBinaryExpressionAsm(size_t tokenType) {
@@ -516,53 +557,43 @@ void CodeGenVisitor::genBinaryExpressionAsm(size_t tokenType) {
 
 antlrcpp::Any CodeGenVisitor::visitAdditiveExpression(CParser::AdditiveExpressionContext *ctx) {
     // TODO: pointer add
-    genBinaryExpression(ctx->multiplicativeExpression(), ctx->additiveOperator());
-    return ExpType::RIGHT;
+    return genBinaryExpression(ctx->multiplicativeExpression(), ctx->additiveOperator());
 }
 
 antlrcpp::Any CodeGenVisitor::visitMultiplicativeExpression(CParser::MultiplicativeExpressionContext *ctx) {
-    genBinaryExpression(ctx->castExpression(), ctx->multiplicativeOperator());
-    return ExpType::RIGHT;
+    return genBinaryExpression(ctx->castExpression(), ctx->multiplicativeOperator());
 }
 
 antlrcpp::Any CodeGenVisitor::visitShiftExpression(CParser::ShiftExpressionContext *ctx) {
-    genBinaryExpression(ctx->additiveExpression(), ctx->shiftOperator());
-    return ExpType::RIGHT;
+    return genBinaryExpression(ctx->additiveExpression(), ctx->shiftOperator());
 }
 
 antlrcpp::Any CodeGenVisitor::visitRelationalExpression(CParser::RelationalExpressionContext *ctx) {
-    genBinaryExpression(ctx->shiftExpression(), ctx->relationalOperator());
-    return ExpType::RIGHT;
+    return genBinaryExpression(ctx->shiftExpression(), ctx->relationalOperator());
 }
 
 antlrcpp::Any CodeGenVisitor::visitEqualityExpression(CParser::EqualityExpressionContext *ctx) {
-    genBinaryExpression(ctx->relationalExpression(), ctx->equalityOperator());
-    return ExpType::RIGHT;
+    return genBinaryExpression(ctx->relationalExpression(), ctx->equalityOperator());
 }
 
 antlrcpp::Any CodeGenVisitor::visitAndExpression(CParser::AndExpressionContext *ctx) {
-    genBinaryExpression(ctx->equalityExpression(), ctx->andOperator());
-    return ExpType::RIGHT;
+    return genBinaryExpression(ctx->equalityExpression(), ctx->andOperator());
 }
 
 antlrcpp::Any CodeGenVisitor::visitExclusiveOrExpression(CParser::ExclusiveOrExpressionContext *ctx) {
-    genBinaryExpression(ctx->andExpression(), ctx->exclusiveOrOperator());
-    return ExpType::RIGHT;
+    return genBinaryExpression(ctx->andExpression(), ctx->exclusiveOrOperator());
 }
 
 antlrcpp::Any CodeGenVisitor::visitInclusiveOrExpression(CParser::InclusiveOrExpressionContext *ctx) {
-    genBinaryExpression(ctx->exclusiveOrExpression(), ctx->inclusiveOrOperator());
-    return ExpType::RIGHT;
+    return genBinaryExpression(ctx->exclusiveOrExpression(), ctx->inclusiveOrOperator());
 }
 
 antlrcpp::Any CodeGenVisitor::visitLogicalAndExpression(CParser::LogicalAndExpressionContext *ctx) {
-    genBinaryExpression(ctx->inclusiveOrExpression(), ctx->logicalAndOperator());
-    return ExpType::RIGHT;
+    return genBinaryExpression(ctx->inclusiveOrExpression(), ctx->logicalAndOperator());
 }
 
 antlrcpp::Any CodeGenVisitor::visitLogicalOrExpression(CParser::LogicalOrExpressionContext *ctx) {
-    genBinaryExpression(ctx->logicalAndExpression(), ctx->logicalOrOperator());
-    return ExpType::RIGHT;
+    return genBinaryExpression(ctx->logicalAndExpression(), ctx->logicalOrOperator());
 }
 
 antlrcpp::Any CodeGenVisitor::visitBlockItem(CParser::BlockItemContext *ctx) {

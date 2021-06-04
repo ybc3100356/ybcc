@@ -46,7 +46,7 @@ antlrcpp::Any DeclarationVisitor::visitDeclaration(CParser::DeclarationContext *
             }
         }
         SymTab::getInstance().add(symbol, CType(typeTree, bool(type.isTypedef())), line, column, declarator.initValue);
-        SymTab::getInstance().get(compoundCtx + declarator.name, line, column);
+        SymTab::getInstance().get(symbol, line, column);
     }
     return RetType(NoneTypePtr());
 }
@@ -149,8 +149,15 @@ antlrcpp::Any DeclarationVisitor::visitParameterDeclaration(CParser::ParameterDe
     auto line = ctx->getStart()->getLine();
     auto column = ctx->getStart()->getCharPositionInLine();
     auto type = visit(ctx->typeName()).as<CTypeBasePtr>();
-    auto name = visit(ctx->declarator()).as<string>();
+    auto declarator = ctx->declarator();
+    auto name = visit(declarator).as<string>();
     auto symbol = getCompoundContext() + "0@" + name; // params are in the same scope of func body
+    if (!declarator->array().empty())
+        throw NotImplement("use array as function parameter");
+
+    for (int i = 0; i < declarator->pointer().size(); i++) {
+        type = static_pointer_cast<CTypeNodeBase>(getPointerType(type));
+    }
     SymTab::getInstance().add(symbol, CType(type), line, column, nullptr, true);
     SymTab::getInstance().get(symbol, line, column);
     return type;
@@ -266,7 +273,7 @@ antlrcpp::Any DeclarationVisitor::visitPostfixExpression(CParser::PostfixExpress
             if (visit(exp).as<RetType>().type->getNodeType() != BaseType::SInt) { // index should be int
                 throw InvalidArraySize(exp->getText());
             }
-            if (resultType->getNodeType() == BaseType::Array)
+            if (resultType->getNodeType() == BaseType::Array || resultType->getNodeType() == BaseType::Pointer)
                 resultType = resultType->getChild();
             else {// to many brackets
                 throw InvalidArrayList(ctx->getText());
