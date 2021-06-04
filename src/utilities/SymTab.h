@@ -6,6 +6,8 @@
 #define MYCC_SYMTAB_H
 
 #include <utility>
+#include <queue>
+
 #include "CParser.h"
 
 #include "type.h"
@@ -13,6 +15,7 @@
 #include "utilities.h"
 
 using InitValuePtr = CParser::InitializerContext *;
+using std::queue;
 
 class SymTabEntry {
 public:
@@ -32,7 +35,17 @@ class SymTab {
     unordered_map<string, SymTabEntry> entries;
     unordered_map<string, size_t> _offsets;
     unordered_map<string, vector<string>> _params;
+    queue<CTypeBasePtr> typeQueue;
 public:
+    CTypeBasePtr getTypeFromQueue() {
+        auto result = typeQueue.front();
+        typeQueue.pop();
+        return result;
+    }
+
+    void saveTypeToQueue(const CTypeBasePtr &type) {
+        typeQueue.push(type);
+    }
 
     static SymTab &getInstance() {
         static SymTab instance;

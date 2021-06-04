@@ -44,7 +44,6 @@ class DeclarationVisitor : public CBaseVisitor {
                                                                                         isLeftValue(isLeftValue) {}
     };
 
-    static RetType getRetType(const CTypeBasePtr &first, const CTypeBasePtr &second, size_t op);
     string curFunc;
     vector<size_t> blockOrderStack;
     size_t blockOrder = 0;

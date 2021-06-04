@@ -460,11 +460,14 @@ antlrcpp::Any CodeGenVisitor::visitUnaryExpression(CParser::UnaryExpressionConte
     return ExpType::UNDEF;
 }
 
-template<typename T1, typename T2>
+
+// antlr4::ParserRuleContext
+template<class T1, typename T2>
 antlrcpp::Any CodeGenVisitor::genBinaryExpression(vector<T1 *> exps, vector<T2 *> ops) {
     auto exp0Type = visit(exps[0]).template as<ExpType>();
     if (!ops.empty()) {
         comment("binary expression:");
+        auto lType = SymTab::getInstance().getTypeFromQueue();
         if (exp0Type == ExpType::LEFT) {
             load();
         }
@@ -472,17 +475,45 @@ antlrcpp::Any CodeGenVisitor::genBinaryExpression(vector<T1 *> exps, vector<T2 *
         pushReg("s0");// save $s0, and use it as accumulator in the following binary expressions
         mov("s0", "t0");
         for (int i = 0; i < ops.size(); i++) {
+            auto rType = SymTab::getInstance().getTypeFromQueue();
             if (visit(exps[i + 1]).template as<ExpType>() == ExpType::LEFT) {
                 load();
             }
             popReg("t0");
+            bool ptrSub = false;
+            if ((lType->getNodeType() == BaseType::Pointer || lType->getNodeType() == BaseType::Array) &&
+                rType->getNodeType() == BaseType::SInt) { // ptr + int
+                comment("ptr + int");
+                iType("sll", "t0", "t0", 2);        // ptr + int * size
+                rType3("sub", "t0", "0", "t0");      // minus t0
+            } else if (lType->getNodeType() == BaseType::SInt &&
+                       (rType->getNodeType() == BaseType::Pointer ||
+                        rType->getNodeType() == BaseType::Array)) { // int + ptr
+                comment("int + ptr");
+                iType("sll", "s0", "s0", 2);
+                rType3("sub", "s0", "0", "s0");
+            } else if (lType->getNodeType() == BaseType::Pointer &&
+                       rType->getNodeType() == BaseType::Pointer) { // ptr - ptr
+                comment("ptr - ptr");
+                ptrSub = true;
+            }
+
             genBinaryExpressionAsm(
                     dynamic_cast<tree::TerminalNode *>(ops[i]->children.front())->getSymbol()->getType());
+            if (ptrSub) { // ptr - ptr
+                iType("srl", "s0", "s0", 2);    // should be type size/4
+            }
+            lType = getRetType(lType, rType,
+                               dynamic_cast<tree::TerminalNode *>(ops[i]->children.front())->getSymbol()->getType());
         }
         mov("v0", "s0");
         popReg("s0");
         pushReg("v0");
         return ExpType::RIGHT;
+        if (lType->getNodeType() == BaseType::Pointer)
+            return ExpType::LEFT;
+        else
+            return ExpType::RIGHT;
     }
     return exp0Type;
 }

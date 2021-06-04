@@ -348,51 +348,21 @@ antlrcpp::Any DeclarationVisitor::visitConditionalExpression(CParser::Conditiona
     }
 }
 
-DeclarationVisitor::RetType
-DeclarationVisitor::getRetType(const CTypeBasePtr &first, const CTypeBasePtr &second, size_t op) {
-    if (first->getNodeType() == BaseType::Pointer && second->getNodeType() == BaseType::Pointer) {
-        if (isSameType(first->getChild(), second->getChild()))
-            if (op == CLexer::Minus) {
-                return RetType(static_pointer_cast<CTypeNodeBase>(
-                        make_shared<SimpleTypeNode>(SimpleTypeNode(BaseType::SInt))));
-            } else {
-                throw IncompatibleType("operator between pointers should be minus");
-            }
-        else throw IncompatibleType("not the same kind of pointer");
-    } else if (first->getNodeType() == BaseType::Pointer && second->getNodeType() == BaseType::SInt) {
-        if (op == CLexer::Minus || op == CLexer::Plus) {
-            return RetType(first);
-        } else {
-            throw IncompatibleType("pointer can only add or minus by an integer");
-        }
-    } else if (first->getNodeType() == BaseType::SInt && second->getNodeType() == BaseType::Pointer) {
-        if (op == CLexer::Plus) {
-            return RetType(second);
-        } else {
-            throw IncompatibleType("integer can only add by an pointer");
-        }
-    } else if (first->getNodeType() == BaseType::Array || second->getNodeType() == BaseType::Array)
-        throw IncompatibleType("array arithmetic is not supported");
-    else if (first->getNodeType() == BaseType::SInt || second->getNodeType() == BaseType::SInt) {// TODO: type cast
-        return RetType(first);
-    } else
-        throw NotImplement("unsupported operation");
-}
-
-
 antlrcpp::Any DeclarationVisitor::visitAdditiveExpression(CParser::AdditiveExpressionContext *ctx) {
     auto exps = ctx->multiplicativeExpression();
     auto ops = ctx->additiveOperator();
-    RetType firstExp = visit(exps[0]).as<RetType>();
-    RetType secondExp{};
+    CTypeBasePtr firstType = visit(exps[0]).as<RetType>().type;
+    CTypeBasePtr secondType{};
     if (!ops.empty()) {
+        SymTab::getInstance().saveTypeToQueue(firstType);
         for (int i = 0; i < ops.size(); i++) {
-            secondExp = visit(exps[i + 1]).as<RetType>();
-            firstExp = getRetType(firstExp.type, secondExp.type,
-                                  dynamic_cast<tree::TerminalNode *>(ops[i]->children.front())->getSymbol()->getType());
+            secondType = visit(exps[i + 1]).as<RetType>().type;
+            firstType = getRetType(firstType, secondType,
+                                   dynamic_cast<tree::TerminalNode *>(ops[i]->children.front())->getSymbol()->getType());
+            SymTab::getInstance().saveTypeToQueue(secondType);
         }
     }
-    return firstExp;
+    return RetType(firstType);
 }
 
 antlrcpp::Any DeclarationVisitor::visitCastExpression(CParser::CastExpressionContext *ctx) {

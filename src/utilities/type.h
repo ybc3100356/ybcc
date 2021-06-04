@@ -238,6 +238,7 @@ bool isSameType(const CTypeBasePtr &first, const CTypeBasePtr &second);
 //using StructTypeNodePtr = shared_ptr<StructTypeNode>;
 //
 
+CTypeBasePtr getRetType(const CTypeBasePtr &first, const CTypeBasePtr &second, size_t op);
 
 BaseType getBaseType(TypeSpecifiers &specifiers);
 

@@ -182,3 +182,32 @@ bool isSameType(const CTypeBasePtr &first, const CTypeBasePtr &second) {
  * int + ptr -> ptr
  * ptr - int -> ptr
  * */
+CTypeBasePtr getRetType(const CTypeBasePtr &first, const CTypeBasePtr &second, size_t op) {
+    if (first->getNodeType() == BaseType::Pointer && second->getNodeType() == BaseType::Pointer) {
+        if (isSameType(first->getChild(), second->getChild()))
+            if (op == CLexer::Minus) {
+                return static_pointer_cast<CTypeNodeBase>(
+                        make_shared<SimpleTypeNode>(SimpleTypeNode(BaseType::SInt)));
+            } else {
+                throw IncompatibleType("operator between pointers should be minus");
+            }
+        else throw IncompatibleType("not the same kind of pointer");
+    } else if (first->getNodeType() == BaseType::Pointer && second->getNodeType() == BaseType::SInt) {
+        if (op == CLexer::Minus || op == CLexer::Plus) {
+            return first;
+        } else {
+            throw IncompatibleType("pointer can only add or minus by an integer");
+        }
+    } else if (first->getNodeType() == BaseType::SInt && second->getNodeType() == BaseType::Pointer) {
+        if (op == CLexer::Plus) {
+            return second;
+        } else {
+            throw IncompatibleType("integer can only add by an pointer");
+        }
+    } else if (first->getNodeType() == BaseType::Array || second->getNodeType() == BaseType::Array) {
+        throw IncompatibleType("array arithmetic is not supported");
+    } else if (first->getNodeType() == BaseType::SInt || second->getNodeType() == BaseType::SInt) {// TODO: type cast
+        return first;
+    } else
+        throw NotImplement("unsupported operation");
+}
