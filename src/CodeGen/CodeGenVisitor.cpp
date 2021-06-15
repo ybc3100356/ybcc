@@ -372,8 +372,6 @@ antlrcpp::Any CodeGenVisitor::visitAssignmentExpression(CParser::AssignmentExpre
         assert(lType == ExpType::LEFT);
         if (ctx->assignmentOperator()->Assign()) {
             store();
-            popReg("v0");  // same value
-            pushReg("v0");
         } else
             throw NotImplement(ctx->assignmentOperator()->getText());
         return ExpType::RIGHT;

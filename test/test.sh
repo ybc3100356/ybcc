@@ -234,6 +234,8 @@ test 'int bubble_srt(int *a, int n) { int i, j; for (i = 0; i < n; i = i + 1)   
 test 'int bubble_srt(int *a, int n) { int i, j; for (i = 0; i < n; i = i + 1)    {  for (j = 1; j < (n - i); j = j + 1)   {   if (a[j - 1] > a[j])     {    int t;    t = a[j - 1];    a[j - 1] = a[j];    a[j] = t;   }  } } return 0;}int main() { int array[8]; array[0] = 12; array[1] = 9; array[2] = 4; array[3] = 99; array[4] = 120; array[5] = 1; array[6] = 3; array[7] = 10; bubble_srt((int*)array, 8);   return array[5];}'
 test 'int bubble_srt(int *a, int n) { int i, j; for (i = 0; i < n; i = i + 1)    {  for (j = 1; j < (n - i); j = j + 1)   {   if (a[j - 1] > a[j])     {    int t;    t = a[j - 1];    a[j - 1] = a[j];    a[j] = t;   }  } } return 0;}int main() { int array[8]; array[0] = 12; array[1] = 9; array[2] = 4; array[3] = 99; array[4] = 120; array[5] = 1; array[6] = 3; array[7] = 10; bubble_srt((int*)array, 8);   return array[6];}'
 test 'int bubble_srt(int *a, int n) { int i, j; for (i = 0; i < n; i = i + 1)    {  for (j = 1; j < (n - i); j = j + 1)   {   if (a[j - 1] > a[j])     {    int t;    t = a[j - 1];    a[j - 1] = a[j];    a[j] = t;   }  } } return 0;}int main() { int array[8]; array[0] = 12; array[1] = 9; array[2] = 4; array[3] = 99; array[4] = 120; array[5] = 1; array[6] = 3; array[7] = 10; bubble_srt((int*)array, 8);   return array[7];}'
+test 'int main() {    int a[2];    a[0] = 111;    a[1] = 3;    int *p = &a[1] - 1;    *(p + 1) = 22;    return a[0];}'
+test 'int main() {    int a[2];    a[0] = 111;    a[1] = 3;    int *p = &a[1] - 1;    *(p + 1) = 22;    return a[1];}'
 
 echo "Well done!"
 
