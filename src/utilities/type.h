@@ -106,6 +106,13 @@ public:
 
     CTypeBasePtr getChild() { return childNode; }
 
+    size_t getBaseNodeSize() {
+        if (childNode)
+            return childNode->getBaseNodeSize();
+        else
+            return getSize();
+    }
+
     explicit CTypeNodeBase(BaseType baseType = BaseType::Error, CTypeBasePtr childNode = nullptr)
             : childNode(std::move(childNode)), nodeType(baseType) {}
 

@@ -19,7 +19,8 @@ void SymTab::add(const string &symbol, const CType &type, size_t line, size_t co
             auto funcName = symbol.substr(0, pos);
             if (isArray) {
                 _offsets[funcName] += type.getTypeTree()->getSize() / 4;
-                entries.insert({symbol, SymTabEntry(type, _offsets[funcName], line, column, initValue)});
+                size_t baseTypeSize = type.getTypeTree()->getBaseNodeSize() / 4;
+                entries.insert({symbol, SymTabEntry(type, _offsets[funcName] - baseTypeSize, line, column, initValue)});
             } else {
                 entries.insert({symbol, SymTabEntry(type, _offsets[funcName], line, column, initValue)});
                 _offsets[funcName] += type.getTypeTree()->getSize() / 4;

@@ -429,11 +429,10 @@ antlrcpp::Any CodeGenVisitor::visitUnaryExpression(CParser::UnaryExpressionConte
         if (auto op = ctx->unaryOperator()) {
             comment("unary exp");
             ExpType expType = visit(ctx->unaryExpression()).as<ExpType>();
-            popReg("t0");
             if (op->And()) {     // &x
-                pushReg("t0");
                 return ExpType::RIGHT;
             }
+            popReg("t0");
 
             if (expType == ExpType::LEFT) {
                 memType("lw", "t0", "t0", 0);
@@ -609,7 +608,7 @@ void CodeGenVisitor::genBinaryExpressionAsm(size_t tokenType) {
             std::cerr << "undefined symbol for binary expression" << std::endl;
             assert(false);
     }
-};
+}
 
 antlrcpp::Any CodeGenVisitor::visitMultiplicativeExpression(CParser::MultiplicativeExpressionContext *ctx) {
     return genBinaryExpression(ctx->castExpression(), ctx->multiplicativeOperator());
