@@ -270,8 +270,13 @@ blockItem
     ;
 
 forCondition
-	:   (declaration | expression? ';' ) forCondExpression? ';' forFinalExpression?
+	:   forInit forCondExpression? ';' forFinalExpression?
 	;
+
+forInit
+    :   expression? ';'
+    |   declaration
+    ;
 
 forFinalExpression:    expression    ;
 forCondExpression:    expression    ;

@@ -213,11 +213,11 @@ antlrcpp::Any CodeGenVisitor::visitForLoop(CParser::ForLoopContext *ctx) {
     auto loopBegin = "loop_" + to_string(labelCount++);
     breakStack.push_back(breakPoint);
     continueStack.push_back(continuePoint);
-    if (auto exp = ctx->forCondition()->expression()) {
+    if (auto exp = ctx->forCondition()->forInit()->expression()) {
         visit(exp);
         comment("unused expr value at the top of stack, destroy it");
         pop();
-    } else if (auto dec = ctx->forCondition()->declaration()) {
+    } else if (auto dec = ctx->forCondition()->forInit()->declaration()) {
         visit(dec);
     }
     label(loopBegin);
