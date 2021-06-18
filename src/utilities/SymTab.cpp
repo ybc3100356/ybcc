@@ -13,23 +13,38 @@ void SymTab::add(const string &symbol, const CType &type, size_t line, size_t co
         if (type.getTypeTree()->getNodeType() == BaseType::Function) {
             // function
             entries.insert({symbol, SymTabEntry(type, 0, line, column, initValue)});
-            _params[symbol];
+            params[symbol];
+            offsetMap[symbol];
         } else {
             auto pos = symbol.find_first_of('@');
             auto funcName = symbol.substr(0, pos);
             if (isArray) {
-                _offsets[funcName] += type.getTypeTree()->getSize() / 4;
-                size_t baseTypeSize = type.getTypeTree()->getBaseNodeSize() / 4;
-                entries.insert({symbol, SymTabEntry(type, _offsets[funcName] - baseTypeSize, line, column, initValue)});
+                size_t baseTypeSize = type.getTypeTree()->getBaseNodeSize();
+                auto elements = type.getTypeTree()->getSize() / baseTypeSize;
+                offsetMap[funcName].add(baseTypeSize, elements);
+                entries.insert({symbol, SymTabEntry(type, offsetMap[funcName].get(), line, column, initValue)});
             } else {
-                entries.insert({symbol, SymTabEntry(type, _offsets[funcName], line, column, initValue)});
-                _offsets[funcName] += type.getTypeTree()->getSize() / 4;
+                auto typeSize = type.getTypeTree()->getSize();
+                offsetMap[funcName].add(typeSize, 1);
+                entries.insert({symbol, SymTabEntry(type, offsetMap[funcName].get(), line, column, initValue)});
             }
             if (isParam)
-                _params[funcName].push_back(symbol);
+                params[funcName].push_back(symbol);
         }
         entries[symbol].name = symbol;
     }
+}
+
+void SymTab::Offsets::add(size_t singleSize, size_t count) { // alignment = singleSize = 1,2,4,8,...
+    auto align = offsetInWord % singleSize; // 0 -- has been aligned, others -- need to be aligned
+    offsetInWord += align ? singleSize - align : 0;
+    offsetInWord += singleSize * count;
+    words += offsetInWord / WORD_BYTES;
+    offsetInWord %= WORD_BYTES;
+}
+
+size_t SymTab::Offsets::get() const {
+    return words * WORD_BYTES + offsetInWord;
 }
 
 const SymTabEntry &SymTab::get(const string &symbol, size_t line, size_t column) {
@@ -77,7 +92,7 @@ void SymTab::show() {
         // function
         if (type == BaseType::Function) {
             auto funcType = dynamic_cast<FunctionTypeNode *>(entry.second.type.getTypeTree().get());
-            std::cout << " return type:[" << getTypeStr(funcType->getReturnType()) << "]\t\t";
+            std::cout << " return type:[" << getTypeStr(funcType->getBaseType()) << "]\t\t";
         }
         std::cout << " offset:[" << entry.second.offset << "]\t\t";
 
@@ -88,23 +103,23 @@ void SymTab::show() {
     }
 
     std::cout << "offset:" << std::endl;
-    for (const auto&[key, value]:_offsets) {
-        std::cout << "func:" << key << ", offset:" << value << std::endl;
+    for (const auto&[key, value]:offsetMap) {
+        std::cout << "func:" << key << ", offset:" << value.get() << std::endl;
     }
 }
 
 size_t SymTab::getTotalOffset(const string &funcName) {
-    return _offsets[funcName];
+    return offsetMap[funcName].get();
 }
 
 vector<string> SymTab::getParamNames(const string &funcName) {
-    return _params[funcName];
+    return params[funcName];
 }
 
-size_t SymTab::getOffset(const string &symbol) {
+size_t SymTab::getSize(const string &symbol) {
     auto result = entries.find(symbol);
     if (result != entries.end())
-        return result->second.offset;
+        return result->second.type.getSize();
     else {
         throw UnDef(symbol);
     }

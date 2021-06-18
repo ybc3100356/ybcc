@@ -63,7 +63,9 @@ public:
 
     antlrcpp::Any visitPrimaryExpression(CParser::PrimaryExpressionContext *ctx) override;
 
-    antlrcpp::Any visitConstant(CParser::ConstantContext *ctx) override;
+    antlrcpp::Any visitIntConst(CParser::IntConstContext *ctx) override;
+
+    antlrcpp::Any visitCharConst(CParser::CharConstContext *ctx) override;
 
     antlrcpp::Any visitIdentifier(CParser::IdentifierContext *ctx) override;
 
@@ -94,6 +96,8 @@ public:
     antlrcpp::Any visitDeclarator(CParser::DeclaratorContext *ctx) override;
 
     antlrcpp::Any visitCompoundStatement(CParser::CompoundStatementContext *ctx) override;
+
+    antlrcpp::Any visitReturnStmt(CParser::ReturnStmtContext *ctx) override;
 
     antlrcpp::Any visitWhileLoop(CParser::WhileLoopContext *ctx) override;
 

@@ -40,12 +40,12 @@ int main(int argc, const char *argv[]) {
         // declarations
         DeclarationVisitor declarationVisitor;
         declarationVisitor.visit(tree);
+        CodeGenVisitor codeGenVisitor;
+        string asm_file = codeGenVisitor.visit(tree).as<string>();
         if (argc == 3) {
             SymTab::getInstance().show();
             freopen(argv[2], "w", stdout);
         }
-        CodeGenVisitor codeGenVisitor;
-        string asm_file = codeGenVisitor.visit(tree).as<string>();
         std::cout << asm_file << std::endl;
     }
     catch (Error &e) {

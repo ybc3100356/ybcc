@@ -47,14 +47,15 @@ class CodeGenVisitor : public CBaseVisitor {
     }
 
 public:
-    CodeGenVisitor() : curFunc(), blockOrder(0), labelCount(0), blockOrderStack(), _code(), _data() {}
+    CodeGenVisitor() : curFunc(), blockOrder(0), labelCount(0), blockOrderStack(), _code(), _data() {
+        builtInFunctionMap.insert({"printChar", &CodeGenVisitor::printChar});
+        builtInFunctionMap.insert({"printString", &CodeGenVisitor::printString});
+    }
 
     // expression
     antlrcpp::Any visitPrimaryExpression(CParser::PrimaryExpressionContext *ctx) override;
 
     antlrcpp::Any visitAssignmentExpression(CParser::AssignmentExpressionContext *ctx) override;
-
-    antlrcpp::Any visitConstant(CParser::ConstantContext *ctx) override;
 
     antlrcpp::Any visitIdentifier(CParser::IdentifierContext *ctx) override;
 
@@ -83,6 +84,10 @@ public:
     antlrcpp::Any visitConditionalExpression(CParser::ConditionalExpressionContext *ctx) override;
 
     antlrcpp::Any visitPostfixExpression(CParser::PostfixExpressionContext *ctx) override;
+
+    antlrcpp::Any visitIntConst(CParser::IntConstContext *ctx) override;
+
+    antlrcpp::Any visitCharConst(CParser::CharConstContext *ctx) override;
 
     // init declaration
     antlrcpp::Any visitInitDeclarator(CParser::InitDeclaratorContext *ctx) override;
@@ -196,9 +201,9 @@ private:
     }
 
     inline void call(const string &funcName, size_t argOffsets) {
-        comment("call " + funcName + " arg offset:(" + to_string(argOffsets) + ")");
+        comment("call " + funcName + " arg offset:(" + to_string(WORD_BYTES * argOffsets) + ")");
         jal(funcName);
-        iType("addiu", "sp", "sp", 4 * (int) argOffsets);
+        iType("addiu", "sp", "sp", WORD_BYTES * (int) argOffsets);
     }
 
     inline void mov(const string &reg0, const string &reg1) { iType("addiu", reg0, reg1, 0); }
@@ -222,26 +227,41 @@ private:
         iType("addiu", "sp", "sp", 8);
     }
 
+    // in bytes
     inline void pushFrameAddr(size_t k) {
         comment("push symbol addr[3 lines]");
-        iType("addiu", "sp", "sp", -4);
-        iType("addiu", "t1", "s8", -4 - 4 * (int) k);
+        iType("addiu", "sp", "sp", -WORD_BYTES);
+        iType("addiu", "t1", "s8", -(int) k);
         memType("sw", "t1", "sp", 0);
     }
 
-    inline void load() {
+    static inline string loadOp(size_t size) {
+        return size == 4 ? "lw" :
+               (size == 2 ? "lh" :
+                (size == 1 ? "lb" :
+                 "wrong"));
+    }
+
+    static inline string storeOp(size_t size) {
+        return size == 4 ? "sw" :
+               (size == 2 ? "sh" :
+                (size == 1 ? "sb" :
+                 "wrong"));
+    }
+
+    inline void load(size_t size) {
         comment("load symbol to stack[3 lines]");
         memType("lw", "t1", "sp", 0);    // addr
-        memType("lw", "t1", "t1", 0);    // value
+        memType(loadOp(size), "t1", "t1", 0);    // value
         memType("sw", "t1", "sp", 0);    // load(to stack)
     }
 
-    inline void store() {
+    inline void store(size_t size) {
         comment("store symbol to mem[4 lines]");
         memType("lw", "t1", "sp", 4);    // value
         memType("lw", "t2", "sp", 0);    // addr
         iType("addiu", "sp", "sp", 4);    //
-        memType("sw", "t1", "t2", 0);    // store(to addr)
+        memType(storeOp(size), "t1", "t2", 0);    // store(to addr)
     }
 
     inline void pop() {
@@ -265,11 +285,55 @@ private:
 
     void genBinaryExpressionAsm(size_t tokenType);
 
+    static string unescape(const string &rawString);
+
+    // built in function, arguments are on the top of stack
+    using MemFuncPtr = void (CodeGenVisitor::*)();
+
+    unordered_map<string, MemFuncPtr> builtInFunctionMap;
+
+    bool isBuildIn(const string &funcName) {
+        return builtInFunctionMap.find(funcName) != builtInFunctionMap.end();
+    }
+
+    void callBuiltIn(const string &funcName, size_t offsets) {
+        comment("call built in function: " + funcName);
+        auto result = builtInFunctionMap.find(funcName);
+        if (result != builtInFunctionMap.end()) {
+            MemFuncPtr func = result->second;
+            (this->*func)();
+        }
+        iType("addiu", "sp", "sp", WORD_BYTES * (int) offsets);
+    }
+
+    void printChar() {
+        popReg("a0");
+        pushReg("v0");
+        _code << "\tli $v0, 11 # syscall(11): print char\n";
+        _code << "\tsyscall\n";
+        popReg("v0");
+    }
+
+    void printString() {
+        popReg("a0");
+        pushReg("v0");
+        _code << "\tli $v0, 4 # syscall(4): print string\n";
+        _code << "\tsyscall\n";
+        popReg("v0");
+    }
+
     template<typename T1, typename T2>
     antlrcpp::Any genBinaryExpression(vector<T1 *> exps, vector<T2 *> ops);
 
-    enum class ExpType {
-        UNDEF, INT, LEFT, RIGHT, PTR, ARR
+    class ExpType {
+    public:
+        size_t size;
+        enum class Type {
+            UNDEF, INT, LEFT, RIGHT, PTR, ARR
+        };
+        Type type;
+
+        explicit ExpType(Type type = Type::UNDEF, size_t size = 4) : type(type), size(size) {}
     };
 };
 

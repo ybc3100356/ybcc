@@ -33,9 +33,21 @@ public:
 
 class SymTab {
     unordered_map<string, SymTabEntry> entries;
-    unordered_map<string, size_t> _offsets;
-    unordered_map<string, vector<string>> _params;
+    unordered_map<string, vector<string>> params;
     queue<CTypeBasePtr> typeQueue;
+
+    class Offsets {
+        size_t words;           // counter
+        size_t offsetInWord;    // counter
+    public:
+        // add a symbol, singleSize: bytes
+        void add(size_t singleSize, size_t count);
+
+        size_t get() const;
+    };
+
+    unordered_map<string, Offsets> offsetMap; // func <-> offset
+
 public:
     CTypeBasePtr getTypeFromQueue() {
         auto result = typeQueue.front();
@@ -59,7 +71,7 @@ public:
 
     const SymTabEntry &get(const string &name, size_t line = -1, size_t column = -1);
 
-    size_t getOffset(const string &symbol);
+    size_t getSize(const string &symbol);
 
     // function
     size_t getTotalOffset(const string &funcName);

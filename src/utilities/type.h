@@ -149,7 +149,6 @@ public:
 
     BaseType getBaseType() override { return nodeType; }
 
-
     size_t getSize() override;
 
     explicit SimpleTypeNode(BaseType type) : CTypeNodeBase(type) {}
@@ -162,11 +161,7 @@ class FunctionTypeNode : public CTypeNodeBase {
 public:
     BaseType getNodeType() override { return BaseType::Function; }
 
-    BaseType getBaseType() override { return nodeType; }
-
-    BaseType getReturnType() {
-        return childNode->getNodeType();
-    }
+    BaseType getBaseType() override { return childNode->getNodeType(); }
 
     size_t getSize() override { return 0; }
 

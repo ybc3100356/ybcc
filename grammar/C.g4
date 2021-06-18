@@ -11,10 +11,10 @@ primaryExpression
 identifier: Identifier;
 
 constant
-    :   IntegerConstant
+    :   IntegerConstant         # intConst
 //    |   FloatingConstant
 //    |   EnumerationConstant
-//    |   CharacterConstant
+    |   CharacterConstant       # charConst
     ;
 
 postfixExpression
@@ -165,6 +165,7 @@ declarationSpecifiers
 
 typeName
     :   declarationSpecifier+
+    |   identifier
     ;
 
 declarationSpecifier
@@ -561,7 +562,7 @@ FloatingSuffix
     :   [flFL]
     ;
 
-fragment
+
 CharacterConstant
     :   '\'' CCharSequence '\''
     |   'L\'' CCharSequence '\''

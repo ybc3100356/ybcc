@@ -35,7 +35,7 @@ antlrcpp::Any CodeGenVisitor::visitGlobalDeclaration(CParser::GlobalDeclarationC
             }
         }
     }
-    return ExpType::UNDEF;
+    return ExpType();
 }
 
 antlrcpp::Any CodeGenVisitor::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx) {
@@ -49,21 +49,24 @@ antlrcpp::Any CodeGenVisitor::visitFunctionDefinition(CParser::FunctionDefinitio
     // TODO: Calling convection: a0-a3, more on stack
     // now: all paramNames are on stack
     auto paramNames = SymTab::getInstance().getParamNames(curFunc);
+    size_t argOffset = 1;
     for (auto &paramName : paramNames) {
         auto entry = SymTab::getInstance().get(paramName);
-        auto argOffset = WORD_BYTES * (2 + (int) entry.offset);
-        auto paramOffset = -WORD_BYTES - WORD_BYTES * (int) entry.offset;
+        auto size = entry.type.getTypeTree()->getSize();
+        argOffset++;
+        auto paramOffset = -(int) entry.offset;
+        // arg -> param
         comment("param " + paramName + "(" + to_string(entry.line) + "," + to_string(entry.column) + ")" +
-                ": fp+(" + to_string(argOffset) +
+                ": fp+(" + to_string(WORD_BYTES * argOffset) +
                 ") to fp+(" + to_string(paramOffset) + ")");
-        memType("lw", "t0", "s8", argOffset);
-        memType("sw", "t0", "s8", paramOffset);
+        memType("lw", "t0", "s8", WORD_BYTES * (int) argOffset);
+        memType(storeOp(size), "t0", "s8", paramOffset);
     }
 
     // allocate local vars on stack
     size_t offsets = SymTab::getInstance().getTotalOffset(curFunc);
-    comment("offsets:" + to_string(offsets));
-    iType("addiu", "sp", "s8", -4 * (int) offsets);
+    comment("offset:" + to_string(offsets));
+    iType("addiu", "sp", "s8", -(int) offsets);
 
     pushReg("s0");
     // TODO: dynamic decide saved registers
@@ -81,7 +84,7 @@ antlrcpp::Any CodeGenVisitor::visitFunctionDefinition(CParser::FunctionDefinitio
     blockOrderStack.clear();
     blockOrder = 0;
     curFunc = "";
-    return ExpType::UNDEF;
+    return ExpType();
 }
 
 antlrcpp::Any CodeGenVisitor::visitCompoundStatement(CParser::CompoundStatementContext *ctx) {
@@ -94,14 +97,15 @@ antlrcpp::Any CodeGenVisitor::visitCompoundStatement(CParser::CompoundStatementC
     blockOrder = blockOrderStack.back() + 1;
     blockOrderStack.pop_back();
     comment("block " + to_string(blockOrder - 1) + " end");
-    return ExpType::UNDEF;
+    return ExpType();
 }
 
 antlrcpp::Any CodeGenVisitor::visitReturnStmt(CParser::ReturnStmtContext *ctx) {
     // epilogue
     _code << "\t#return\n";
-    if (visit(ctx->expression()).as<ExpType>() == ExpType::LEFT) {
-        load();
+    auto expType = visit(ctx->expression()).as<ExpType>();
+    if (expType.type == ExpType::Type::LEFT) {
+        load(expType.size);
     }
     popReg("v0");
 
@@ -117,12 +121,13 @@ antlrcpp::Any CodeGenVisitor::visitReturnStmt(CParser::ReturnStmtContext *ctx) {
     popReg("s8");
     popReg("ra");
     ret();
-    return ExpType::UNDEF;
+    return ExpType();
 }
 
 antlrcpp::Any CodeGenVisitor::visitIfStmt(CParser::IfStmtContext *ctx) {
-    if (visit(ctx->expression()).as<ExpType>() == ExpType::LEFT) {
-        load();
+    auto expType = visit(ctx->expression()).as<ExpType>();
+    if (expType.type == ExpType::Type::LEFT) {
+        load(expType.size);
     }
     // TODO: branched return statement can be optimized
     if (ctx->Else()) {
@@ -140,7 +145,7 @@ antlrcpp::Any CodeGenVisitor::visitIfStmt(CParser::IfStmtContext *ctx) {
         visit(ctx->statement(0));
         label("end_" + to_string(endBranch));
     }
-    return ExpType::UNDEF;
+    return ExpType();
 }
 
 antlrcpp::Any CodeGenVisitor::visitWhileLoop(CParser::WhileLoopContext *ctx) {
@@ -154,8 +159,9 @@ antlrcpp::Any CodeGenVisitor::visitWhileLoop(CParser::WhileLoopContext *ctx) {
     continueStack.push_back(continuePoint);
     label(loopBegin);
     comment("cond:");
-    if (visit(ctx->expression()).as<ExpType>() == ExpType::LEFT) {
-        load();
+    auto expType = visit(ctx->expression()).as<ExpType>();
+    if (expType.type == ExpType::Type::LEFT) {
+        load(expType.size);
     }
     beqz(breakPoint);
     comment("body:");
@@ -166,7 +172,7 @@ antlrcpp::Any CodeGenVisitor::visitWhileLoop(CParser::WhileLoopContext *ctx) {
     comment("while loop end");
     blockOrder = blockOrderStack.back() + 1;
     blockOrderStack.pop_back();
-    return ExpType::UNDEF;
+    return ExpType();
 }
 
 antlrcpp::Any CodeGenVisitor::visitDoWhile(CParser::DoWhileContext *ctx) {
@@ -182,8 +188,9 @@ antlrcpp::Any CodeGenVisitor::visitDoWhile(CParser::DoWhileContext *ctx) {
     // body
     visit(ctx->statement());
     // cond
-    if (visit(ctx->expression()).as<ExpType>() == ExpType::LEFT) {
-        load();
+    auto expType = visit(ctx->expression()).as<ExpType>();
+    if (expType.type == ExpType::Type::LEFT) {
+        load(expType.size);
     }
     beqz(breakPoint);
     label(continuePoint);
@@ -194,7 +201,7 @@ antlrcpp::Any CodeGenVisitor::visitDoWhile(CParser::DoWhileContext *ctx) {
     comment("do while loop end");
     blockOrder = blockOrderStack.back() + 1;
     blockOrderStack.pop_back();
-    return ExpType::UNDEF;
+    return ExpType();
 }
 
 antlrcpp::Any CodeGenVisitor::visitForLoop(CParser::ForLoopContext *ctx) {
@@ -208,24 +215,27 @@ antlrcpp::Any CodeGenVisitor::visitForLoop(CParser::ForLoopContext *ctx) {
     continueStack.push_back(continuePoint);
     if (auto exp = ctx->forCondition()->expression()) {
         visit(exp);
+        comment("unused expr value at the top of stack, destroy it");
+        pop();
     } else if (auto dec = ctx->forCondition()->declaration()) {
         visit(dec);
     }
     label(loopBegin);
     // cond
     if (auto cond = ctx->forCondition()->forCondExpression()) {
-        if (visit(cond->expression()).as<ExpType>() == ExpType::LEFT) {
-            load();
+        auto expType = visit(cond->expression()).as<ExpType>();
+        if (expType.type == ExpType::Type::LEFT) {
+            load(expType.size);
         }
         beqz(breakPoint);
-    } else {
-        // do nothing
     }
     // body
     visit(ctx->statement());
     label(continuePoint);
     if (auto final = ctx->forCondition()->forFinalExpression()) {
         visit(final);
+        comment("unused expr value at the top of stack, destroy it");
+        pop();
     }
     j(loopBegin);
     label(breakPoint);
@@ -234,7 +244,7 @@ antlrcpp::Any CodeGenVisitor::visitForLoop(CParser::ForLoopContext *ctx) {
     comment("for loop end");
     blockOrder = blockOrderStack.back() + 1;
     blockOrderStack.pop_back();
-    return ExpType::UNDEF;
+    return ExpType();
 }
 
 antlrcpp::Any CodeGenVisitor::visitContinueStmt(CParser::ContinueStmtContext *ctx) {
@@ -242,7 +252,7 @@ antlrcpp::Any CodeGenVisitor::visitContinueStmt(CParser::ContinueStmtContext *ct
         throw InvalidContinue();
     } else
         j(continueStack.back());
-    return ExpType::UNDEF;
+    return ExpType();
 }
 
 antlrcpp::Any CodeGenVisitor::visitBreakStmt(CParser::BreakStmtContext *ctx) {
@@ -250,14 +260,25 @@ antlrcpp::Any CodeGenVisitor::visitBreakStmt(CParser::BreakStmtContext *ctx) {
         throw InvalidBreak();
     } else
         j(breakStack.back());
-    return ExpType::UNDEF;
+    return ExpType();
 }
 
-antlrcpp::Any CodeGenVisitor::visitConstant(CParser::ConstantContext *ctx) {
+antlrcpp::Any CodeGenVisitor::visitIntConst(CParser::IntConstContext *ctx) {
     comment("constant");
     li("v0", atoi(ctx->IntegerConstant()->getText().c_str()));
     pushReg("v0");
-    return ExpType::RIGHT;
+    return ExpType(ExpType::Type::RIGHT, 4);
+}
+
+antlrcpp::Any CodeGenVisitor::visitCharConst(CParser::CharConstContext *ctx) {
+    comment("constant");
+    string rawChar = ctx->CharacterConstant()->getText(); // getText(): 'c' -- [0] = '\''
+    string unescapeChar = unescape(rawChar.substr(1, rawChar.size() - 2));
+    if (unescapeChar.size() != 1)
+        throw InvalidCharSequence(rawChar);
+    li("v0", (int) unescapeChar[0]);
+    pushReg("v0");
+    return ExpType(ExpType::Type::RIGHT, 1);
 }
 
 antlrcpp::Any CodeGenVisitor::visitIdentifier(CParser::IdentifierContext *ctx) {
@@ -273,9 +294,9 @@ antlrcpp::Any CodeGenVisitor::visitIdentifier(CParser::IdentifierContext *ctx) {
         pushFrameAddr(entry.offset);
     }
     if (entry.type.getTypeTree()->getNodeType() == BaseType::Array)
-        return ExpType::ARR;
+        return ExpType(ExpType::Type::ARR, 4);
     else
-        return ExpType::LEFT;
+        return ExpType(ExpType::Type::LEFT, entry.type.getSize());
 }
 
 antlrcpp::Any CodeGenVisitor::visitPostfixExpression(CParser::PostfixExpressionContext *ctx) {
@@ -291,11 +312,12 @@ antlrcpp::Any CodeGenVisitor::visitPostfixExpression(CParser::PostfixExpressionC
             comment("use symbol " + id->getText() +
                     "(" + to_string(arrayEntry.line) + ", " + to_string(arrayEntry.column) + ")" +
                     " as array, load pointer first");
-            load();
+            load(WORD_BYTES);
         }
         for (auto exp : exps) {
-            if (visit(exp).as<ExpType>() == ExpType::LEFT) { // index
-                load();
+            auto expType = visit(exp).as<ExpType>();
+            if (expType.type == ExpType::Type::LEFT) { // index
+                load(expType.size);
             }
             if (resultType->getNodeType() == BaseType::Array || resultType->getNodeType() == BaseType::Pointer) {
                 resultType = resultType->getChild();
@@ -308,43 +330,59 @@ antlrcpp::Any CodeGenVisitor::visitPostfixExpression(CParser::PostfixExpressionC
             rType2("mult", "t2", "t3");           // index * size
             rType1("mflo", "t2");
             popReg("t3");                               // base address
-            rType3("add", "t2", "t3", "t2");  // base address + index * size ( base[index] )
+            rType3("add", "t2", "t3", "t2");   // base address + index * size ( base[index] )
             pushReg("t2");                              // address of base[index]
         }
         if (resultType->getNodeType() != BaseType::Array) // it's left value only when it gets the base type of array
-            return ExpType::LEFT;
+            return ExpType(ExpType::Type::LEFT, resultType->getSize());
         else
-            return ExpType::RIGHT;
+            return ExpType(ExpType::Type::RIGHT, 4);
     } else if (!ctx->LeftParen().empty()) {
         if (auto id = ctx->primaryExpression()->identifier()) {
             auto funcName = id->getText();
-            auto funcEntry = SymTab::getInstance().get(funcName);
-            size_t offsets = 0;
-            if (!argExpList.empty()) {
-                auto exps = argExpList[0]->assignmentExpression();
-                for (int i = (int) exps.size() - 1; i >= 0; --i) {
-                    if (visit(exps[i]).as<ExpType>() == ExpType::LEFT) {
-                        load();
+            if (isBuildIn(funcName)) {
+                size_t offsets = 0;
+                if (!argExpList.empty()) {
+                    auto exps = argExpList[0]->assignmentExpression();
+                    for (int i = (int) exps.size() - 1; i >= 0; --i) {
+                        auto expType = visit(exps[i]).as<ExpType>();
+                        if (expType.type == ExpType::Type::LEFT) {
+                            load(WORD_BYTES);
+                        }
+                        offsets++;
                     }
-                    // TODO: Calling convection: a0-a3, more on stack
                 }
-                for (auto &param : SymTab::getInstance().getParamNames(funcName)) {
-                    offsets += SymTab::getInstance().getOffset(param);
+                callBuiltIn(funcName, offsets);
+                pushReg("0"); // return 0
+                return ExpType(ExpType::Type::RIGHT, WORD_BYTES);
+            } else {
+                auto funcEntry = SymTab::getInstance().get(funcName);
+                size_t offsets = 0;
+                if (!argExpList.empty()) {
+                    auto exps = argExpList[0]->assignmentExpression();
+                    for (int i = (int) exps.size() - 1; i >= 0; --i) {
+                        auto expType = visit(exps[i]).as<ExpType>();
+                        if (expType.type == ExpType::Type::LEFT) {
+                            load(WORD_BYTES);
+                        }
+                        // TODO: Calling convection: a0-a3, more on stack
+                        offsets++;
+                    }
                 }
+                call(funcName, offsets);
+                pushReg("v0"); // return value
+                if (funcEntry.type.getTypeTree()->getNodeType() == BaseType::Pointer)
+                    return ExpType(ExpType::Type::LEFT, WORD_BYTES);
+                else
+                    return ExpType(ExpType::Type::RIGHT, dynamic_pointer_cast<FunctionTypeNode>(
+                            funcEntry.type.getTypeTree())->getChild()->getSize());
             }
-            call(funcName, offsets);
-            pushReg("v0");
-            if (funcEntry.type.getTypeTree()->getNodeType() == BaseType::Pointer)
-                return ExpType::LEFT;
-            else
-                return ExpType::RIGHT;
-
         } else
             throw InvalidFuncCall();
-    } else { // not func call or array
+    } else { // neither func call nor array
         return visit(ctx->primaryExpression());
     }
-    return ExpType::RIGHT;
+    return ExpType();
 }
 
 antlrcpp::Any CodeGenVisitor::visitPrimaryExpression(CParser::PrimaryExpressionContext *ctx) {
@@ -356,7 +394,7 @@ antlrcpp::Any CodeGenVisitor::visitPrimaryExpression(CParser::PrimaryExpressionC
         return visit(exp);
 //    } else if(auto s = ctx->StringLiteral())   {
     }
-    return ExpType::UNDEF;
+    return ExpType();
 }
 
 antlrcpp::Any CodeGenVisitor::visitAssignmentExpression(CParser::AssignmentExpressionContext *ctx) {
@@ -365,18 +403,18 @@ antlrcpp::Any CodeGenVisitor::visitAssignmentExpression(CParser::AssignmentExpre
     } else {
         comment("assignment exp:");
         ExpType rType = visit(ctx->assignmentExpression()).as<ExpType>();
-        if (rType == ExpType::LEFT) {
-            load();
+        if (rType.type == ExpType::Type::LEFT) {
+            load(rType.size);
         }
         ExpType lType = visit(ctx->unaryExpression()).as<ExpType>();
-        assert(lType == ExpType::LEFT);
+        assert(lType.type == ExpType::Type::LEFT);
         if (ctx->assignmentOperator()->Assign()) {
-            store();
+            store(lType.size);
         } else
             throw NotImplement(ctx->assignmentOperator()->getText());
-        return ExpType::RIGHT;
+        return ExpType(ExpType::Type::RIGHT, lType.size);
     }
-    return ExpType::UNDEF;
+    return ExpType();
 }
 
 antlrcpp::Any CodeGenVisitor::visitInitDeclarator(CParser::InitDeclaratorContext *ctx) {
@@ -384,38 +422,43 @@ antlrcpp::Any CodeGenVisitor::visitInitDeclarator(CParser::InitDeclaratorContext
     comment("define: " + id->getText());
     if (auto init = ctx->initializer()) {
         comment("initialize symbol: " + id->getText());
-        if (visit(init).as<ExpType>() == ExpType::LEFT) {
-            load();
+        auto expType = visit(init).as<ExpType>();
+        if (expType.type == ExpType::Type::LEFT) {
+            load(expType.size);
         }
-        if (visit(id).as<ExpType>() == ExpType::LEFT) {
-            store();
+        expType = visit(id).as<ExpType>();
+        if (expType.type == ExpType::Type::LEFT) {
+            store(expType.size);
             pop();
         } else {
             throw InvalidLvalue(ctx->declarator()->getText());
         }
         comment("end of initialization: " + id->getText());
     }
-    return ExpType::UNDEF;
+    return ExpType();
 }
 
 antlrcpp::Any CodeGenVisitor::visitConditionalExpression(CParser::ConditionalExpressionContext *ctx) {
     if (ctx->Question()) {
-        if (visit(ctx->logicalOrExpression()).as<ExpType>() == ExpType::LEFT) {
-            load();
+        auto expType = visit(ctx->logicalOrExpression()).as<ExpType>();
+        if (expType.type == ExpType::Type::LEFT) {
+            load(expType.size);
         }
         size_t elseBranch = labelCount++;
         size_t endBranch = labelCount++;
         beqz("else_" + to_string(elseBranch));
-        if (visit(ctx->expression()).as<ExpType>() == ExpType::LEFT) {
-            load();
+        expType = visit(ctx->expression()).as<ExpType>();
+        if (expType.type == ExpType::Type::LEFT) {
+            load(expType.size);
         }
         j("end_" + to_string(endBranch));
         label("else_" + to_string(elseBranch));
-        if (visit(ctx->conditionalExpression()).as<ExpType>() == ExpType::LEFT) {
-            load();
+        expType = visit(ctx->conditionalExpression()).as<ExpType>();
+        if (expType.type == ExpType::Type::LEFT) {
+            load(expType.size);
         }
         label("end_" + to_string(endBranch));
-        return ExpType::RIGHT;
+        return ExpType(ExpType::Type::RIGHT);
     } else
         return visit(ctx->logicalOrExpression());
 }
@@ -428,39 +471,39 @@ antlrcpp::Any CodeGenVisitor::visitUnaryExpression(CParser::UnaryExpressionConte
             comment("unary exp");
             ExpType expType = visit(ctx->unaryExpression()).as<ExpType>();
             if (op->And()) {     // &x
-                return ExpType::RIGHT;
+                return ExpType(ExpType::Type::RIGHT);
             }
             popReg("t0");
 
-            if (expType == ExpType::LEFT) {
-                memType("lw", "t0", "t0", 0);
+            if (expType.type == ExpType::Type::LEFT) {
+                memType(loadOp(expType.size), "t0", "t0", 0);
             }
 
             if (op->Minus()) {      // -x
                 rType3("sub", "v0", "0", "t0");
                 pushReg("v0");
-                return ExpType::RIGHT;
+                return ExpType(ExpType::Type::RIGHT);
             } else if (op->Not()) { // !x, 0->1, non-0 ->0
                 iType("sltiu", "v0", "t0", 1);
                 pushReg("v0");
-                return ExpType::RIGHT;
+                return ExpType(ExpType::Type::RIGHT);
             } else if (op->Tilde()) {// ~x, bit-wise not x
                 rType3("nor", "v0", "t0", "0");
                 rType2("not", "v0", "t0");
                 pushReg("v0");
-                return ExpType::RIGHT;
+                return ExpType(ExpType::Type::RIGHT);
             } else if (op->Plus()) {    // +x,  x
                 // TODO: int promotion
                 pushReg("t0");
-                return ExpType::RIGHT;
+                return ExpType(ExpType::Type::RIGHT);
             } else if (op->Star()) {    // *x
                 pushReg("t0");
-                return ExpType::LEFT;
+                return ExpType(ExpType::Type::LEFT, expType.size);
             }
         } else
             return visit(ctx->unaryExpression());
     }
-    return ExpType::UNDEF;
+    return ExpType();
 }
 
 template<class T1, typename T2>
@@ -468,15 +511,16 @@ antlrcpp::Any CodeGenVisitor::genBinaryExpression(vector<T1 *> exps, vector<T2 *
     auto exp0Type = visit(exps[0]).template as<ExpType>();
     if (!ops.empty()) {
         comment("binary expression:");
-        if (exp0Type == ExpType::LEFT) {
-            load();
+        if (exp0Type.type == ExpType::Type::LEFT) {
+            load(exp0Type.size);
         }
         popReg("t0");
         pushReg("s0");// save $s0, and use it as accumulator in the following binary expressions
         mov("s0", "t0");
         for (int i = 0; i < ops.size(); i++) {
-            if (visit(exps[i + 1]).template as<ExpType>() == ExpType::LEFT) {
-                load();
+            auto expType = visit(exps[i + 1]).template as<ExpType>();
+            if (expType.type == ExpType::Type::LEFT) {
+                load(expType.size);
             }
             popReg("t0");
             genBinaryExpressionAsm(
@@ -485,7 +529,7 @@ antlrcpp::Any CodeGenVisitor::genBinaryExpression(vector<T1 *> exps, vector<T2 *
         mov("v0", "s0");
         popReg("s0");
         pushReg("v0");
-        return ExpType::RIGHT;
+        return ExpType(ExpType::Type::RIGHT);
     }
     return exp0Type;
 }
@@ -497,16 +541,17 @@ antlrcpp::Any CodeGenVisitor::visitAdditiveExpression(CParser::AdditiveExpressio
     if (!ops.empty()) {
         comment("binary expression:");
         auto lType = SymTab::getInstance().getTypeFromQueue();
-        if (exp0Type == ExpType::LEFT) {
-            load();
+        if (exp0Type.type == ExpType::Type::LEFT) {
+            load(exp0Type.size);
         }
         popReg("t0");
         pushReg("s0");// save $s0, and use it as accumulator in the following binary expressions
         mov("s0", "t0");
         for (int i = 0; i < ops.size(); i++) {
             auto rType = SymTab::getInstance().getTypeFromQueue();
-            if (visit(exps[i + 1]).as<ExpType>() == ExpType::LEFT) {
-                load();
+            auto expType = visit(exps[i + 1]).as<ExpType>();
+            if (expType.type == ExpType::Type::LEFT) {
+                load(expType.size);
             }
             popReg("t0");
             bool ptrSub = false;
@@ -535,7 +580,7 @@ antlrcpp::Any CodeGenVisitor::visitAdditiveExpression(CParser::AdditiveExpressio
         mov("v0", "s0");
         popReg("s0");
         pushReg("v0");
-        return ExpType::RIGHT;
+        return ExpType(ExpType::Type::RIGHT);
     }
     return exp0Type;
 }
@@ -650,7 +695,7 @@ antlrcpp::Any CodeGenVisitor::visitBlockItem(CParser::BlockItemContext *ctx) {
     } else if (auto decl = ctx->declaration()) {
         visit(decl);
     }
-    return ExpType::UNDEF;
+    return ExpType();
 }
 
 antlrcpp::Any CodeGenVisitor::visitExpStmt(CParser::ExpStmtContext *ctx) {
@@ -659,6 +704,33 @@ antlrcpp::Any CodeGenVisitor::visitExpStmt(CParser::ExpStmtContext *ctx) {
         comment("unused expr value at the top of stack, destroy it");
         pop();
     }
-    return ExpType::UNDEF;
+    return ExpType();
 }
+
+string CodeGenVisitor::unescape(const string &rawString) {
+    string res;
+    string::const_iterator it = rawString.begin();
+    while (it != rawString.end()) {
+        char c = *it++;
+        if (c == '\\' && it != rawString.end()) {
+            switch (*it++) {
+                case '\\':
+                    c = '\\';
+                    break;
+                case 'n':
+                    c = '\n';
+                    break;
+                case 't':
+                    c = '\t';
+                    break;
+                default:
+                    throw InvalidCharSequence(rawString);
+            }
+        }
+        res += c;
+    }
+    return res;
+}
+
+
 

@@ -187,55 +187,28 @@ test 'int g(int x, int y, int z) { return x + y * z;}int f(int x, int y) { retur
 
 test 'int g(int x, int y, int z) {  return x+x+x+x+y+y+y+z;}int f(int x, int y) { return x - g(13,x,y+x);}int main() { int a = 2; int b = 3; return a + f(a, b + a);}'
 
-test 'int main() { return 1; 2; 3; }'
-test 'int main() { 1; return 2; 3; }'
-test 'int main() { 1; 2; return 3; }'
+test "
+int f(char a, char b, int c) {
+    return (int) (a + '0' * b) - c;
+}
 
-test 'int main() { int foo=3; return foo; }'
-test 'int main() { int foo123=3; int bar=5; return foo123+bar; }'
+int main() {
+    return f('a', 'b', 31);
+}
+"
 
-test 'int main() { if (0) return 2; return 3; }'
-test 'int main() { if (1-1) return 2; return 3; }'
-test 'int main() { if (1) return 2; return 3; }'
-test 'int main() { if (2-1) return 2; return 3; }'
+test "int f(char *a, char b, short s, int c, char d) {
+    return (int) (a[0] + d * b) - c * (int) s;
+}
 
-test 'int main() { {1; {2;} return 3;} }'
-
-test 'int main() { int i=0; i=0; while(i<10) i=i+1; return i; }'
-test 'int main() { int i=0; int j=0; while(i<=10) {j=i+j; i=i+1;} return j; }'
-
-test 'int main() { int i=0; int j=0; for (i=0; i<=10; i=i+1) j=i+j; return j; }'
-test 'int main() { for (;;) return 3; return 5; }'
-
-test 'int ret3() { return 3; } int main() { return ret3(); }'
-test 'int ret5() { return 5; }int main() { return ret5(); }'
-test 'int add(int x, int y) { return x+y; } int main() { return add(3, 5); }'
-test 'int sub(int x, int y) { return x-y; }  int main() { return sub(5, 3); }'
-test 'int add6(int a, int b, int c, int d, int e, int f) { return a+b+c+d+e+f;} int main() { return add6(1,2,3,4,5,6); }'
-
-test 'int fib(int n) { if (n <= 1) return n; return fib(n - 1) + fib(n - 2);} int main() { int n = 16; return fib(n);}'
-test 'int fact(int n) { if (n == 0) {return 0;} else if (n == 1) { return 1;} else { return n * fact(n - 1); }}int main() { int n = 5; int f = 0; f = fact(n); return f;}'
-test 'int a = 3;int main() { a = 2; int a = 1; return a;}'
-
-test 'int a = 3;int b = 2;int main() { a = 7; int b = 1; return a + b;}'
-test 'int main() { int a = 123; int b = 321; int *p = &a; *p = 10; p = &b; *p = 33; return a + b;}'
-test ' int main() { int a = 123; int b = 321; int sum = 0; int *pa = &a; int *pb = &b; sum = sum + *pa + *pb + a + b; int **pp = &pa; sum = sum + **pp + a + b; **pp = 99; sum = sum + **pp + a + b; pp = &pb; **pp = 37; sum = sum + **pp + a + b; *pp = &a; **pp = 135; sum = sum + **pp + a + b; return sum;}'
-test 'int main() { int a = 0; *&a=2; return a;}'
-test 'int main() { int a = 13; int b = 3; int *pa = &a; int *pb; pb = &*pa; return *pa + *pb;}'
-test 'int main() { int a[10]; for (int i = 0; i < 10; i = i + 1) {  a[i] = i * i; } int sum = 1; for (int i = 0; i < 10; i = i + 1) {  sum = sum + i * a[i]; } return sum;}'
-
-test 'int main(){ int a[10]; int *p = &a[2]; p[2] = 14; return a[4];}'
-
-test 'int bubble_srt(int *a, int n) { int i, j; for (i = 0; i < n; i = i + 1)    {  for (j = 1; j < (n - i); j = j + 1)   {   if (a[j - 1] > a[j])     {    int t;    t = a[j - 1];    a[j - 1] = a[j];    a[j] = t;   }  } } return 0;}int main() { int array[8]; array[0] = 12; array[1] = 9; array[2] = 4; array[3] = 99; array[4] = 120; array[5] = 1; array[6] = 3; array[7] = 10; bubble_srt((int*)array, 8);   return array[0];}'
-test 'int bubble_srt(int *a, int n) { int i, j; for (i = 0; i < n; i = i + 1)    {  for (j = 1; j < (n - i); j = j + 1)   {   if (a[j - 1] > a[j])     {    int t;    t = a[j - 1];    a[j - 1] = a[j];    a[j] = t;   }  } } return 0;}int main() { int array[8]; array[0] = 12; array[1] = 9; array[2] = 4; array[3] = 99; array[4] = 120; array[5] = 1; array[6] = 3; array[7] = 10; bubble_srt((int*)array, 8);   return array[1];}'
-test 'int bubble_srt(int *a, int n) { int i, j; for (i = 0; i < n; i = i + 1)    {  for (j = 1; j < (n - i); j = j + 1)   {   if (a[j - 1] > a[j])     {    int t;    t = a[j - 1];    a[j - 1] = a[j];    a[j] = t;   }  } } return 0;}int main() { int array[8]; array[0] = 12; array[1] = 9; array[2] = 4; array[3] = 99; array[4] = 120; array[5] = 1; array[6] = 3; array[7] = 10; bubble_srt((int*)array, 8);   return array[2];}'
-test 'int bubble_srt(int *a, int n) { int i, j; for (i = 0; i < n; i = i + 1)    {  for (j = 1; j < (n - i); j = j + 1)   {   if (a[j - 1] > a[j])     {    int t;    t = a[j - 1];    a[j - 1] = a[j];    a[j] = t;   }  } } return 0;}int main() { int array[8]; array[0] = 12; array[1] = 9; array[2] = 4; array[3] = 99; array[4] = 120; array[5] = 1; array[6] = 3; array[7] = 10; bubble_srt((int*)array, 8);   return array[3];}'
-test 'int bubble_srt(int *a, int n) { int i, j; for (i = 0; i < n; i = i + 1)    {  for (j = 1; j < (n - i); j = j + 1)   {   if (a[j - 1] > a[j])     {    int t;    t = a[j - 1];    a[j - 1] = a[j];    a[j] = t;   }  } } return 0;}int main() { int array[8]; array[0] = 12; array[1] = 9; array[2] = 4; array[3] = 99; array[4] = 120; array[5] = 1; array[6] = 3; array[7] = 10; bubble_srt((int*)array, 8);   return array[4];}'
-test 'int bubble_srt(int *a, int n) { int i, j; for (i = 0; i < n; i = i + 1)    {  for (j = 1; j < (n - i); j = j + 1)   {   if (a[j - 1] > a[j])     {    int t;    t = a[j - 1];    a[j - 1] = a[j];    a[j] = t;   }  } } return 0;}int main() { int array[8]; array[0] = 12; array[1] = 9; array[2] = 4; array[3] = 99; array[4] = 120; array[5] = 1; array[6] = 3; array[7] = 10; bubble_srt((int*)array, 8);   return array[5];}'
-test 'int bubble_srt(int *a, int n) { int i, j; for (i = 0; i < n; i = i + 1)    {  for (j = 1; j < (n - i); j = j + 1)   {   if (a[j - 1] > a[j])     {    int t;    t = a[j - 1];    a[j - 1] = a[j];    a[j] = t;   }  } } return 0;}int main() { int array[8]; array[0] = 12; array[1] = 9; array[2] = 4; array[3] = 99; array[4] = 120; array[5] = 1; array[6] = 3; array[7] = 10; bubble_srt((int*)array, 8);   return array[6];}'
-test 'int bubble_srt(int *a, int n) { int i, j; for (i = 0; i < n; i = i + 1)    {  for (j = 1; j < (n - i); j = j + 1)   {   if (a[j - 1] > a[j])     {    int t;    t = a[j - 1];    a[j - 1] = a[j];    a[j] = t;   }  } } return 0;}int main() { int array[8]; array[0] = 12; array[1] = 9; array[2] = 4; array[3] = 99; array[4] = 120; array[5] = 1; array[6] = 3; array[7] = 10; bubble_srt((int*)array, 8);   return array[7];}'
-test 'int main() {    int a[2];    a[0] = 111;    a[1] = 3;    int *p = &a[1] - 1;    *(p + 1) = 22;    return a[0];}'
-test 'int main() {    int a[2];    a[0] = 111;    a[1] = 3;    int *p = &a[1] - 1;    *(p + 1) = 22;    return a[1];}'
+int main() {
+    char c[100];
+    c[0] = 'd' + 'd' * (char) 6;
+    c[1] = '-';
+    int x = f((char *) &c[0], 'b', (short) (7), 31, '+');
+    return x;
+}
+"
 
 echo "Well done!"
 

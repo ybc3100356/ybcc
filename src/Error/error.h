@@ -79,4 +79,15 @@ public:
     explicit InvalidArrayList(const string &ctx = "") : Error(("invalid array list: " + ctx).c_str()) {}
 };
 
+class InvalidCharSequence : public Error {
+public:
+    explicit InvalidCharSequence(const string &ctx = "") : Error(("invalid char sequence: " + ctx).c_str()) {}
+};
+
+class UnknownTypeName : public Error {
+public:
+    explicit UnknownTypeName(const string &symbol = "") : Error(("unknown type name: " + symbol).c_str()) {}
+};
+
+
 #endif //MYCC_ERROR_H

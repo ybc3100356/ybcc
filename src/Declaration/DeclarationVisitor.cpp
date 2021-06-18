@@ -13,8 +13,14 @@ antlrcpp::Any DeclarationVisitor::visitIdentifier(CParser::IdentifierContext *ct
     return RetType(SymTab::getInstance().get(symbol, line, column).type.getTypeTree(), true);
 }
 
-antlrcpp::Any DeclarationVisitor::visitConstant(CParser::ConstantContext *ctx) {
+antlrcpp::Any DeclarationVisitor::visitIntConst(CParser::IntConstContext *ctx) {
     SimpleTypePtr type = make_shared<SimpleTypeNode>(SimpleTypeNode(BaseType::SInt));
+    auto ptr = static_pointer_cast<CTypeNodeBase>(type);
+    return RetType(ptr);
+}
+
+antlrcpp::Any DeclarationVisitor::visitCharConst(CParser::CharConstContext *ctx) {
+    SimpleTypePtr type = make_shared<SimpleTypeNode>(SimpleTypeNode(BaseType::SChar));
     auto ptr = static_pointer_cast<CTypeNodeBase>(type);
     return RetType(ptr);
 }
@@ -307,10 +313,12 @@ antlrcpp::Any DeclarationVisitor::visitPostfixExpression(CParser::PostfixExpress
                     if (!lType->typeCheck(rType.type)) {
                         if (lType->getNodeType() == BaseType::Pointer &&
                             rType.type->getNodeType() == BaseType::Pointer) {
-                            throw IncompatibleType("different kind of pointer -- " + ctx->getText());
+                            throw IncompatibleType(
+                                    "unmatched parameter list: different kind of pointer -- " + ctx->getText());
                         } else
-                            throw IncompatibleType(getTypeStr(lType->getNodeType()) + " and "
-                                                   + getTypeStr(rType.type->getNodeType()) + " -- " + ctx->getText());
+                            throw IncompatibleType(
+                                    "unmatched parameter list: " + getTypeStr(lType->getNodeType()) + " and "
+                                    + getTypeStr(rType.type->getNodeType()) + " -- " + ctx->getText());
                     }
                 }
             } else if (!funcType->getParamList().empty())
@@ -379,4 +387,18 @@ antlrcpp::Any DeclarationVisitor::visitCastExpression(CParser::CastExpressionCon
         }
         return RetType(src.type->typeCast(dst));
     }
+}
+
+antlrcpp::Any DeclarationVisitor::visitReturnStmt(CParser::ReturnStmtContext *ctx) {
+    auto returnType = SymTab::getInstance().get(curFunc).type.getTypeTree()->getChild();
+    RetType lType = RetType(returnType);
+    RetType rType = visit(ctx->expression()).as<RetType>();
+    if (!lType.type->typeCheck(rType.type)) {
+        if (lType.type->getNodeType() == BaseType::Pointer && rType.type->getNodeType() == BaseType::Pointer) {
+            throw IncompatibleType("different kind of pointer -- " + ctx->getText());
+        } else
+            throw IncompatibleType(getTypeStr(lType.type->getNodeType()) + " and "
+                                   + getTypeStr(rType.type->getNodeType()) + " -- " + ctx->getText());
+    }
+    return RetType(NoneTypePtr());
 }
