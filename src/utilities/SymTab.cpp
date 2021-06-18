@@ -106,6 +106,9 @@ void SymTab::show() {
         if (entry.second.initValue != nullptr) {
             std::cout << " init value:[" << entry.second.initValue->getText() << "]\t\t";
         }
+
+        if (entry.second.type.isTypedef())
+            std::cout << "(typedef)";
         std::cout << std::endl;
     }
 

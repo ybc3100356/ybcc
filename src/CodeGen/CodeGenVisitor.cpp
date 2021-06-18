@@ -22,6 +22,9 @@ antlrcpp::Any CodeGenVisitor::visitGlobalDeclaration(CParser::GlobalDeclarationC
             // must be constant
             auto initValue = 0;
             auto entry = SymTab::getInstance().get(name);
+            if (entry.type.isTypedef()) {
+                return ExpType();
+            }
             auto initCtx = entry.initValue;
             if (entry.type.getTypeTree()->getNodeType() == BaseType::Array) {
                 globalArray(name, entry.type.getSize());
@@ -289,7 +292,7 @@ antlrcpp::Any CodeGenVisitor::visitStrConst(CParser::StrConstContext *ctx) {
         str += rawString->getText().substr(1, rawString->getText().size() - 2);
     }
     auto strLabel = "str_" + to_string(stringOrder++);
-    _data << "\t" + strLabel + ": .asciiz\t" + "\"" + str + "\"\n";
+    _data << strLabel + ": .asciiz\t" + "\"" + str + "\"\n";
     la("v0", strLabel);
     pushReg("v0");
     return ExpType(ExpType::Type::RIGHT, WORD_BYTES);
@@ -299,6 +302,9 @@ antlrcpp::Any CodeGenVisitor::visitIdentifier(CParser::IdentifierContext *ctx) {
     auto symbol = getCompoundContext() + ctx->getText();
     auto entry = SymTab::getInstance().get(symbol, ctx->getStart()->getLine(),
                                            ctx->getStart()->getCharPositionInLine());
+    if (entry.type.isTypedef())
+        return ExpType();
+
     if (entry.name.find_last_of('@') == string::npos) {// globalVar var
         comment("push symbol addr: " + symbol + "(" + to_string(entry.line) + ", " + to_string(entry.column) + ")");
         la("t0", entry.name);

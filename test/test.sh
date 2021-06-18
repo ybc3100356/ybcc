@@ -239,7 +239,7 @@ test 'int main() { int a[2]; a[0] = 111; a[1] = 3; int *p = &a[1] - 1; *(p + 1) 
 
 test "int f(char a, char b, int c) { return (int) (a + '0' * b) - c;}int main() { return f('a', 'b', 31);}"
 test "int f(char *a, char b, short s, int c, char d) { return (int) (a[0] + d * b) - c * (int) s;}int main() { char c[100]; c[0] = 'd' + 'd' * (char) 6; c[1] = '-'; int x = f((char *) &c[0], 'b', (short) (7), 31, '+'); return x;}"
-test "typedef int INT;typedef int INT_ARRAY[10];typedef INT_ARRAY INT_ARRAY2[20];typedef INT_ARRAY2 INT_ARRAY3[3];typedef INT_ARRAY3 INT_ARRAY4[4];int main() { INT x = 11; INT_ARRAY b[20]; for (int i = 0; i < 10; i = i + 1) {  for (int j = 0; j < 20; j = j + 1) {   b[i][j] = i * j;   if (i + j > 21)    break;  } } INT sum = 0; for (int i = 0; i < 10; i = i + 1) {  for (INT j = 0; j < 20; j = j + 1) {   sum = sum + x + b[i][j];  } } INT_ARRAY4 d; d[0][2][11][9]  = 5; return sum + d[0][2][11][9] ;}"
+test "typedef int INT;typedef int INT_ARRAY[10];typedef INT_ARRAY INT_ARRAY2[20];typedef INT_ARRAY2 INT_ARRAY3[3];typedef INT_ARRAY3 INT_ARRAY4[4];int main() { INT x = 11; INT_ARRAY b[20]; for (int i = 0; i < 10; i = i + 1) {  for (int j = 0; j < 20; j = j + 1) {   b[i][j] = i * j;   if (i + j > 21)    b[i][j] = i + j;  } } INT sum = 0; for (int i = 0; i < 10; i = i + 1) {  for (INT j = 0; j < 20; j = j + 1) {   sum = sum + x + b[i][j];  } } INT_ARRAY4 d; d[0][2][11][9]  = 5; return sum + d[0][2][11][9] ;}"
 
 echo "Well done!"
 
