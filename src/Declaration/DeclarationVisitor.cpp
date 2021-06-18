@@ -99,15 +99,24 @@ antlrcpp::Any DeclarationVisitor::visitInitializer(CParser::InitializerContext *
 
 antlrcpp::Any DeclarationVisitor::visitTypeName(CParser::TypeNameContext *ctx) {
     TypeSpecifiers typeSpecifiers;
-    for (auto &specifier  : ctx->declarationSpecifier()) {
-        // TODO: another specifiers
-        // type specifier
-        auto typeSpecifier = specifier->typeSpecifier();
-        if (auto s = typeSpecifier->simpleTypeSpecifier()) {
-            // simple type specifier
-            typeSpecifiers.push_back(visit(s).as<TypeSpecifier>());
+    if (auto id = ctx->identifier()) { //
+        auto entry = SymTab::getInstance().get(id->getText());
+        if (entry.type.isTypedef()) {
+            return CTypeBasePtr(entry.type.getTypeTree());
+        } else {
+            throw UnknownTypeName(id->getText());
         }
-        // TODO: compound type
+    } else {
+        for (auto &specifier  : ctx->declarationSpecifier()) {
+            // TODO: another specifiers
+            // type specifier
+            auto typeSpecifier = specifier->typeSpecifier();
+            if (auto s = typeSpecifier->simpleTypeSpecifier()) {
+                // simple type specifier
+                typeSpecifiers.push_back(visit(s).as<TypeSpecifier>());
+            }
+            // TODO: compound type
+        }
     }
 
     // simple type

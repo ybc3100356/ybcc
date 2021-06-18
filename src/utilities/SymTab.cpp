@@ -10,7 +10,9 @@ void SymTab::add(const string &symbol, const CType &type, size_t line, size_t co
     if (entry != entries.end()) {
         throw ReDef(symbol);
     } else {
-        if (type.getTypeTree()->getNodeType() == BaseType::Function) {
+        if (type.isTypedef()) {
+            entries.insert({symbol, SymTabEntry(type, 0, line, column, initValue)});
+        } else if (type.getTypeTree()->getNodeType() == BaseType::Function) {
             // function
             entries.insert({symbol, SymTabEntry(type, 0, line, column, initValue)});
             params[symbol];
