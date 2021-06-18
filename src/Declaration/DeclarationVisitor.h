@@ -60,6 +60,7 @@ public:
         else
             return compound_names;
     }
+    antlrcpp::Any visitCompilationUnit(CParser::CompilationUnitContext *ctx) override;
 
     antlrcpp::Any visitPrimaryExpression(CParser::PrimaryExpressionContext *ctx) override;
 

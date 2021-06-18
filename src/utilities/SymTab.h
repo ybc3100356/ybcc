@@ -44,6 +44,8 @@ class SymTab {
         void add(size_t singleSize, size_t count);
 
         size_t get() const;
+
+        void align();
     };
 
     unordered_map<string, Offsets> offsetMap; // func <-> offset
@@ -69,6 +71,8 @@ public:
     void add(const string &symbol, const CType &type, size_t line, size_t column,
              InitValuePtr initValue = InitValuePtr(), bool isParam = false, bool isArray = false);
 
+    void align();
+
     const SymTabEntry &get(const string &name, size_t line = -1, size_t column = -1);
 
     size_t getSize(const string &symbol);
@@ -79,8 +83,7 @@ public:
     vector<string> getParamNames(const string &funcName);
 
 private:
-    SymTab() = default;
-
+    SymTab();
 
 public:
     SymTab(SymTab const &) = delete;

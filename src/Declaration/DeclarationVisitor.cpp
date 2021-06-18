@@ -6,6 +6,12 @@
 
 #include <memory>
 
+antlrcpp::Any DeclarationVisitor::visitCompilationUnit(CParser::CompilationUnitContext *ctx) {
+    auto result = visitChildren(ctx);
+    SymTab::getInstance().align();
+    return result;
+}
+
 antlrcpp::Any DeclarationVisitor::visitIdentifier(CParser::IdentifierContext *ctx) {
     auto symbol = getCompoundContext() + ctx->Identifier()->getText();
     auto line = ctx->getStart()->getLine();
@@ -142,7 +148,7 @@ antlrcpp::Any DeclarationVisitor::visitFunctionDefinition(CParser::FunctionDefin
             paramTypes = visit(paramList).as<vector<CTypeBasePtr>>();
         }
     }
-    auto funcType = CType(static_cast<CTypeBasePtr>(new FunctionTypeNode(returnType, paramTypes)));
+    auto funcType = CType(static_cast<CTypeBasePtr>(new FunctionTypeNode(returnType.getTypeTree(), paramTypes)));
     SymTab::getInstance().add(name, funcType, ctx->getStart()->getLine(), ctx->getStart()->getCharPositionInLine());
     SymTab::getInstance().get(name, ctx->getStart()->getLine(), ctx->getStart()->getCharPositionInLine());
     visit(ctx->compoundStatement());

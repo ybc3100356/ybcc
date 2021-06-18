@@ -347,7 +347,7 @@ antlrcpp::Any CodeGenVisitor::visitPostfixExpression(CParser::PostfixExpressionC
                     for (int i = (int) exps.size() - 1; i >= 0; --i) {
                         auto expType = visit(exps[i]).as<ExpType>();
                         if (expType.type == ExpType::Type::LEFT) {
-                            load(WORD_BYTES);
+                            load(expType.size);
                         }
                         offsets++;
                     }
@@ -363,7 +363,7 @@ antlrcpp::Any CodeGenVisitor::visitPostfixExpression(CParser::PostfixExpressionC
                     for (int i = (int) exps.size() - 1; i >= 0; --i) {
                         auto expType = visit(exps[i]).as<ExpType>();
                         if (expType.type == ExpType::Type::LEFT) {
-                            load(WORD_BYTES);
+                            load(expType.size);
                         }
                         // TODO: Calling convection: a0-a3, more on stack
                         offsets++;

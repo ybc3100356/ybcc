@@ -49,6 +49,11 @@ size_t SymTab::Offsets::get() const {
     return words * WORD_BYTES + offsetInWord;
 }
 
+void SymTab::Offsets::align() {
+    offsetInWord = 0;
+    words++;
+}
+
 const SymTabEntry &SymTab::get(const string &symbol, size_t line, size_t column) {
     // func or globalVar var
     auto pos = symbol.find_last_of('@');
@@ -124,6 +129,28 @@ size_t SymTab::getSize(const string &symbol) {
         return result->second.type.getSize();
     else {
         throw UnDef(symbol);
+    }
+}
+
+SymTab::SymTab() {
+    add("printChar", CType(std::make_shared<FunctionTypeNode>(
+            CTypeBasePtr(new SimpleTypeNode(BaseType::Void)),
+            vector<CTypeBasePtr>{
+                    CTypeBasePtr(new SimpleTypeNode(BaseType::SChar))
+            })), 0, 0);
+
+    add("printString", CType(std::make_shared<FunctionTypeNode>(
+            CTypeBasePtr(new SimpleTypeNode(BaseType::Void)),
+            vector<CTypeBasePtr>{
+                    CTypeBasePtr(getPointerType(static_cast<CTypeBasePtr>(new SimpleTypeNode(BaseType::SChar))))
+            })), 0, 0);
+}
+
+void SymTab::align() {
+    for (auto&[key, value]:offsetMap) {
+        if (value.get() % WORD_BYTES != 0) {
+            value.align();
+        }
     }
 }
 

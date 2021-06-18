@@ -170,6 +170,10 @@ public:
     explicit FunctionTypeNode(const CType &returnType, vector<CTypeBasePtr> paramList)
             : CTypeNodeBase(BaseType::Function, returnType.getTypeTree()),
               paramList(std::move(paramList)) {}
+
+    explicit FunctionTypeNode(const CTypeBasePtr &returnType, vector<CTypeBasePtr> paramList)
+            : CTypeNodeBase(BaseType::Function, returnType),
+              paramList(std::move(paramList)) {}
 };
 
 using FunctionTypePtr = shared_ptr<FunctionTypeNode>;
