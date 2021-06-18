@@ -144,6 +144,12 @@ SymTab::SymTab() {
             vector<CTypeBasePtr>{
                     CTypeBasePtr(getPointerType(static_cast<CTypeBasePtr>(new SimpleTypeNode(BaseType::SChar))))
             })), 0, 0);
+
+    add("printInt", CType(std::make_shared<FunctionTypeNode>(
+            CTypeBasePtr(new SimpleTypeNode(BaseType::Void)),
+            vector<CTypeBasePtr>{
+                    CTypeBasePtr(new SimpleTypeNode(BaseType::SInt))
+            })), 0, 0);
 }
 
 void SymTab::align() {

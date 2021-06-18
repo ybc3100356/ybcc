@@ -31,6 +31,14 @@ antlrcpp::Any DeclarationVisitor::visitCharConst(CParser::CharConstContext *ctx)
     return RetType(ptr);
 }
 
+antlrcpp::Any DeclarationVisitor::visitStrConst(CParser::StrConstContext *ctx) {
+    auto rawText = ctx->getText();
+    ArrayTypePtr type = make_shared<ArrayTypeNode>(ArrayTypeNode(CTypeBasePtr(
+            new SimpleTypeNode(BaseType::SChar)), 0));
+    auto ptr = static_pointer_cast<CTypeNodeBase>(type);
+    return RetType(ptr);
+}
+
 antlrcpp::Any DeclarationVisitor::visitDeclaration(CParser::DeclarationContext *ctx) {
     auto line = ctx->getStart()->getLine();
     auto column = ctx->getStart()->getCharPositionInLine();

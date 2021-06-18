@@ -4,7 +4,6 @@ grammar C;
 primaryExpression
     :   identifier
     |   constant
-    |   StringLiteral+
     |   '(' expression ')'
     ;
 
@@ -15,6 +14,7 @@ constant
 //    |   FloatingConstant
 //    |   EnumerationConstant
     |   CharacterConstant       # charConst
+    |   StringLiteral+          # strConst
     ;
 
 postfixExpression
@@ -605,7 +605,7 @@ HexadecimalEscapeSequence
     :   '\\x' HexadecimalDigit+
     ;
 StringLiteral
-    :   EncodingPrefix? '"' SCharSequence? '"'
+    :   '"' SCharSequence? '"'
     ;
 fragment
 EncodingPrefix

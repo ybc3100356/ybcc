@@ -24,6 +24,9 @@ class CodeGenVisitor : public CBaseVisitor {
     ostringstream _code;
     ostringstream _data;
 
+    // string literals
+    size_t stringOrder;
+
     // compound statement
     string curFunc;
     strings breakStack;
@@ -47,9 +50,10 @@ class CodeGenVisitor : public CBaseVisitor {
     }
 
 public:
-    CodeGenVisitor() : curFunc(), blockOrder(0), labelCount(0), blockOrderStack(), _code(), _data() {
+    CodeGenVisitor() : curFunc(), blockOrder(0), labelCount(0), stringOrder(0), blockOrderStack(), _code(), _data() {
         builtInFunctionMap.insert({"printChar", &CodeGenVisitor::printChar});
         builtInFunctionMap.insert({"printString", &CodeGenVisitor::printString});
+        builtInFunctionMap.insert({"printInt", &CodeGenVisitor::printInt});
     }
 
     // expression
@@ -88,6 +92,8 @@ public:
     antlrcpp::Any visitIntConst(CParser::IntConstContext *ctx) override;
 
     antlrcpp::Any visitCharConst(CParser::CharConstContext *ctx) override;
+
+    antlrcpp::Any visitStrConst(CParser::StrConstContext *ctx) override;
 
     // init declaration
     antlrcpp::Any visitInitDeclarator(CParser::InitDeclaratorContext *ctx) override;
@@ -303,24 +309,23 @@ private:
             MemFuncPtr func = result->second;
             (this->*func)();
         }
-        iType("addiu", "sp", "sp", WORD_BYTES * (int) offsets);
+//        iType("addiu", "sp", "sp", WORD_BYTES * (int) offsets);
     }
 
-    void printChar() {
+    //  arg: a0, syscall number: v0
+    void syscallMIPS(size_t i) {
         popReg("a0");
-        pushReg("v0");
-        _code << "\tli $v0, 11 # syscall(11): print char\n";
+        pushReg("v0");  // save v0
+        _code << "\tli $v0, " + to_string(i) + "\n";
         _code << "\tsyscall\n";
         popReg("v0");
     }
 
-    void printString() {
-        popReg("a0");
-        pushReg("v0");
-        _code << "\tli $v0, 4 # syscall(4): print string\n";
-        _code << "\tsyscall\n";
-        popReg("v0");
-    }
+    inline void printInt() { syscallMIPS(1); }
+
+    inline void printChar() { syscallMIPS(11); }
+
+    inline void printString() { syscallMIPS(4); }
 
     template<typename T1, typename T2>
     antlrcpp::Any genBinaryExpression(vector<T1 *> exps, vector<T2 *> ops);

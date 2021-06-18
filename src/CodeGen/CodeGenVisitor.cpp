@@ -264,14 +264,14 @@ antlrcpp::Any CodeGenVisitor::visitBreakStmt(CParser::BreakStmtContext *ctx) {
 }
 
 antlrcpp::Any CodeGenVisitor::visitIntConst(CParser::IntConstContext *ctx) {
-    comment("constant");
+    comment("int constant");
     li("v0", atoi(ctx->IntegerConstant()->getText().c_str()));
     pushReg("v0");
     return ExpType(ExpType::Type::RIGHT, 4);
 }
 
 antlrcpp::Any CodeGenVisitor::visitCharConst(CParser::CharConstContext *ctx) {
-    comment("constant");
+    comment("char constant");
     string rawChar = ctx->CharacterConstant()->getText(); // getText(): 'c' -- [0] = '\''
     string unescapeChar = unescape(rawChar.substr(1, rawChar.size() - 2));
     if (unescapeChar.size() != 1)
@@ -279,6 +279,20 @@ antlrcpp::Any CodeGenVisitor::visitCharConst(CParser::CharConstContext *ctx) {
     li("v0", (int) unescapeChar[0]);
     pushReg("v0");
     return ExpType(ExpType::Type::RIGHT, 1);
+}
+
+antlrcpp::Any CodeGenVisitor::visitStrConst(CParser::StrConstContext *ctx) {
+    comment("string constant");
+    auto rawStrings = ctx->StringLiteral(); // "a" "b"
+    string str;
+    for (auto &rawString : rawStrings) {
+        str += rawString->getText().substr(1, rawString->getText().size() - 2);
+    }
+    auto strLabel = "str_" + to_string(stringOrder++);
+    _data << "\t" + strLabel + ": .asciiz\t" + "\"" + str + "\"\n";
+    la("v0", strLabel);
+    pushReg("v0");
+    return ExpType(ExpType::Type::RIGHT, WORD_BYTES);
 }
 
 antlrcpp::Any CodeGenVisitor::visitIdentifier(CParser::IdentifierContext *ctx) {
