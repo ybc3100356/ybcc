@@ -1,7 +1,7 @@
 #!/bin/bash
-COMPILER="../cmake-build-debug/mycc"
+COMPILER="../build/mycc"
 FILE=$1
-
+mkdir out
 assert() {
   ans=$1
   in=$2
@@ -243,10 +243,10 @@ test "typedef int INT;typedef int INT_ARRAY[10];typedef INT_ARRAY INT_ARRAY2[20]
 
 echo "Well done!"
 
-#echo "Wrong case testing:"
-#test 'int main(int a, int b) { a = 21; int b; return  a;}'
-#test 'int main() { int a=0; if(a) return a+1+2; else return a-1; else return a + 2 * 3; return a; }'
-#test 'int main() { break; return 0; }'
-#test 'int main() { continue; return 0; }'
-#test 'int main() { int a = 1; int b = 2; int c = 3; int d = -2; a = b = (c = d) = 3; return a * b + c + d;}'
-#
+echo "Wrong case testing:"
+# test 'int main(int a, int b) { a = 21; int b; return  a;}'
+# test 'int main() { int a=0; if(a) return a+1+2; else return a-1; else return a + 2 * 3; return a; }'
+# test 'int main() { break; return 0; }'
+# test 'int main() { continue; return 0; }'
+# test 'int main() { int a = 1; int b = 2; int c = 3; int d = -2; a = b = (c = d) = 3; return a * b + c + d;}'
+

@@ -1,5 +1,5 @@
 #!/bin/bash
-COMPILER="../cmake-build-debug/mycc"
+COMPILER="../build/mycc"
 FILE=$1
 
 if test -f $FILE; then
