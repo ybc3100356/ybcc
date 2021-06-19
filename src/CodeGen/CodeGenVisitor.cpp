@@ -3,8 +3,6 @@
 //
 
 #include "CodeGenVisitor.h"
-
-
 antlrcpp::Any CodeGenVisitor::visitCompilationUnit(CParser::CompilationUnitContext *ctx) {
     _data << ".data\n";
     _code << ".text\n"
@@ -49,7 +47,6 @@ antlrcpp::Any CodeGenVisitor::visitFunctionDefinition(CParser::FunctionDefinitio
     pushReg("s8");
     mov("s8", "sp");
 
-    // TODO: Calling convection: a0-a3, more on stack
     // now: all paramNames are on stack
     auto paramNames = SymTab::getInstance().getParamNames(curFunc);
     size_t argOffset = 1;
@@ -72,7 +69,6 @@ antlrcpp::Any CodeGenVisitor::visitFunctionDefinition(CParser::FunctionDefinitio
     iType("addiu", "sp", "s8", -(int) offsets);
 
     pushReg("s0");
-    // TODO: dynamic decide saved registers
     visit(ctx->compoundStatement());
 
     // main default: return 0
@@ -105,7 +101,7 @@ antlrcpp::Any CodeGenVisitor::visitCompoundStatement(CParser::CompoundStatementC
 
 antlrcpp::Any CodeGenVisitor::visitReturnStmt(CParser::ReturnStmtContext *ctx) {
     // epilogue
-    _code << "\t#return\n";
+    comment("return:");
     auto expType = visit(ctx->expression()).as<ExpType>();
     if (expType.type == ExpType::Type::LEFT) {
         load(expType.size);
@@ -113,7 +109,6 @@ antlrcpp::Any CodeGenVisitor::visitReturnStmt(CParser::ReturnStmtContext *ctx) {
     popReg("v0");
 
     // restore saved registers
-    // TODO: dynamic decide saved registers
     popReg("s0");
 
     // epilogue: deallocate an frame
@@ -132,7 +127,6 @@ antlrcpp::Any CodeGenVisitor::visitIfStmt(CParser::IfStmtContext *ctx) {
     if (expType.type == ExpType::Type::LEFT) {
         load(expType.size);
     }
-    // TODO: branched return statement can be optimized
     if (ctx->Else()) {
         size_t elseBranch = labelCount++;
         size_t endBranch = labelCount++;
@@ -307,8 +301,7 @@ antlrcpp::Any CodeGenVisitor::visitIdentifier(CParser::IdentifierContext *ctx) {
 
     if (entry.name.find_last_of('@') == string::npos) {// globalVar var
         comment("push symbol addr: " + symbol + "(" + to_string(entry.line) + ", " + to_string(entry.column) + ")");
-        la("t0", entry.name);
-        pushReg("t0");
+        pushGlobalAddr(entry.name);
     } else {
         comment("push symbol addr: " + symbol + "(" + to_string(entry.line) + ", " + to_string(entry.column) + ")");
         pushFrameAddr(entry.offset);
@@ -385,7 +378,6 @@ antlrcpp::Any CodeGenVisitor::visitPostfixExpression(CParser::PostfixExpressionC
                         if (expType.type == ExpType::Type::LEFT) {
                             load(expType.size);
                         }
-                        // TODO: Calling convection: a0-a3, more on stack
                         offsets++;
                     }
                 }
@@ -513,7 +505,6 @@ antlrcpp::Any CodeGenVisitor::visitUnaryExpression(CParser::UnaryExpressionConte
                 pushReg("v0");
                 return ExpType(ExpType::Type::RIGHT);
             } else if (op->Plus()) {    // +x,  x
-                // TODO: int promotion
                 pushReg("t0");
                 return ExpType(ExpType::Type::RIGHT);
             } else if (op->Star()) {    // *x
@@ -568,13 +559,13 @@ antlrcpp::Any CodeGenVisitor::visitAdditiveExpression(CParser::AdditiveExpressio
         pushReg("s0");// save $s0, and use it as accumulator in the following binary expressions
         mov("s0", "t0");
         for (int i = 0; i < ops.size(); i++) {
-            auto rType = SymTab::getInstance().getTypeFromQueue();
             auto expType = visit(exps[i + 1]).as<ExpType>();
             if (expType.type == ExpType::Type::LEFT) {
                 load(expType.size);
             }
             popReg("t0");
             bool ptrSub = false;
+            auto rType = SymTab::getInstance().getTypeFromQueue();
             if ((lType->getNodeType() == BaseType::Pointer || lType->getNodeType() == BaseType::Array) &&
                 rType->getNodeType() == BaseType::SInt) { // ptr + int
                 comment("ptr + int");

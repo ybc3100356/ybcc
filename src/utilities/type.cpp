@@ -226,8 +226,6 @@ CTypeBasePtr getRetType(const CTypeBasePtr &first, const CTypeBasePtr &second, s
         }
     } else if (lType == BaseType::Array || rType == BaseType::Array) {
         throw IncompatibleType("array arithmetic is not supported");
-    } else if (lType == BaseType::SInt || rType == BaseType::SInt) {// TODO: type cast
-        return first;
     } else if (lType == rType) {
         return first;
     } else {

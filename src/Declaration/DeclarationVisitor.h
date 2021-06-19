@@ -39,19 +39,18 @@ class DeclarationVisitor : public CBaseVisitor {
     public:
         CTypeBasePtr type;
         bool isLeftValue;
+        bool isTypeDef;
 
-        explicit RetType(CTypeBasePtr type = NoneTypePtr(), bool isLeftValue = false) : type(std::move(type)),
-                                                                                        isLeftValue(isLeftValue) {}
+        explicit RetType(CTypeBasePtr type = NoneTypePtr(), bool isLeftValue = false, bool isTypeDef = false)
+                : type(std::move(type)), isLeftValue(isLeftValue), isTypeDef(isTypeDef) {}
     };
 
     string curFunc;
     vector<size_t> blockOrderStack;
     size_t blockOrder = 0;
-public:
 
     string getCompoundContext() {
         string compound_names;
-        // TODO: make sure '@' not in any name
         for (const auto &order : blockOrderStack) {
             compound_names += to_string(order) + '@';
         }
@@ -60,6 +59,8 @@ public:
         else
             return compound_names;
     }
+
+public:
 
     antlrcpp::Any visitCompilationUnit(CParser::CompilationUnitContext *ctx) override;
 

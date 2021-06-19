@@ -39,7 +39,6 @@ class CodeGenVisitor : public CBaseVisitor {
 
     string getCompoundContext() {
         string compound_names;
-        // TODO: make sure '@' not in any name
         for (const auto &order : blockOrderStack) {
             compound_names += to_string(order) + '@';
         }
@@ -241,6 +240,11 @@ private:
         memType("sw", "t1", "sp", 0);
     }
 
+    inline void pushGlobalAddr(const string &symbol) {
+        la("t0", symbol);
+        pushReg("t0");
+    }
+
     static inline string loadOp(size_t size) {
         return size == 4 ? "lw" :
                (size == 2 ? "lh" :
@@ -287,7 +291,11 @@ private:
         bne("t1", "0", target);
     }
 
-    inline void comment(const string &comment) { _code << "\t#" + comment + "\n"; }
+    inline void comment(const string &comment) {
+#ifdef COMMENT
+        _code << "\t#" + comment + "\n";
+#endif
+    }
 
     void genBinaryExpressionAsm(size_t tokenType);
 

@@ -184,7 +184,6 @@ typedefSpecifier
     :   'typedef'
     ;
 
-// TODO: add userdefine-type
 typeSpecifier
     :   simpleTypeSpecifier
     ;

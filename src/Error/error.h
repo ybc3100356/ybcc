@@ -89,5 +89,10 @@ public:
     explicit UnknownTypeName(const string &symbol = "") : Error(("unknown type name: " + symbol).c_str()) {}
 };
 
+class InvalidExpression : public Error {
+public:
+    explicit InvalidExpression(const string &symbol = "") : Error(("invalid expression: " + symbol).c_str()) {}
+};
+
 
 #endif //MYCC_ERROR_H

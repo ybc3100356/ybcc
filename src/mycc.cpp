@@ -13,10 +13,6 @@ using namespace antlrcpp;
 using namespace antlr4;
 using strings = vector<string>;
 
-void preprocess() {
-    std::cout << "not implemented" << std::endl;
-}
-
 int main(int argc, const char *argv[]) {
     ANTLRInputStream input;
     if (argc == 1) {

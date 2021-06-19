@@ -14,9 +14,10 @@ antlrcpp::Any DeclarationVisitor::visitCompilationUnit(CParser::CompilationUnitC
 
 antlrcpp::Any DeclarationVisitor::visitIdentifier(CParser::IdentifierContext *ctx) {
     auto symbol = getCompoundContext() + ctx->Identifier()->getText();
-    auto line = ctx->getStart()->getLine();
-    auto column = ctx->getStart()->getCharPositionInLine();
-    return RetType(SymTab::getInstance().get(symbol, line, column).type.getTypeTree(), true);
+    auto entry = SymTab::getInstance().get(symbol, ctx->getStart()->getLine(),
+                                           ctx->getStart()->getCharPositionInLine());
+    auto isTypedef = entry.type.isTypedef();
+    return RetType(entry.type.getTypeTree(), !isTypedef, isTypedef);
 }
 
 antlrcpp::Any DeclarationVisitor::visitIntConst(CParser::IntConstContext *ctx) {
@@ -56,6 +57,9 @@ antlrcpp::Any DeclarationVisitor::visitDeclaration(CParser::DeclarationContext *
         }
         if (declarator.initValue) {
             RetType initValueType = visit(declarator.initValue).as<RetType>();
+            if (initValueType.isTypeDef) {
+                throw InvalidExpression(declarator.initValue->getText());
+            }
             if (!typeTree->typeCheck(initValueType.type)) {
                 if (typeTree->getNodeType() == BaseType::Pointer &&
                     initValueType.type->getNodeType() == BaseType::Pointer) {
@@ -67,7 +71,6 @@ antlrcpp::Any DeclarationVisitor::visitDeclaration(CParser::DeclarationContext *
         }
         SymTab::getInstance().add(symbol, CType(typeTree, bool(type.isTypedef())), line, column, declarator.initValue,
                                   false, typeTree->getNodeType() == BaseType::Array);
-        SymTab::getInstance().get(symbol, line, column);
     }
     return RetType(NoneTypePtr());
 }
@@ -122,14 +125,12 @@ antlrcpp::Any DeclarationVisitor::visitTypeName(CParser::TypeNameContext *ctx) {
         }
     } else {
         for (auto &specifier  : ctx->declarationSpecifier()) {
-            // TODO: another specifiers
             // type specifier
             auto typeSpecifier = specifier->typeSpecifier();
             if (auto s = typeSpecifier->simpleTypeSpecifier()) {
                 // simple type specifier
                 typeSpecifiers.push_back(visit(s).as<TypeSpecifier>());
             }
-            // TODO: compound type
         }
     }
 
@@ -150,15 +151,18 @@ antlrcpp::Any DeclarationVisitor::visitFunctionDefinition(CParser::FunctionDefin
     auto returnType = visit(ctx->declarationSpecifiers()).as<CType>();
     auto name = visit(ctx->declarator()).as<string>();
     curFunc = name;
+    // collect parameters information
     vector<CTypeBasePtr> paramTypes{};
     if (auto paramTypeList = ctx->parameterTypeList()) {
         if (auto paramList = paramTypeList->parameterList()) {
             paramTypes = visit(paramList).as<vector<CTypeBasePtr>>();
         }
     }
+    // create a function type, add it to the symbol table
     auto funcType = CType(static_cast<CTypeBasePtr>(new FunctionTypeNode(returnType.getTypeTree(), paramTypes)));
     SymTab::getInstance().add(name, funcType, ctx->getStart()->getLine(), ctx->getStart()->getCharPositionInLine());
     SymTab::getInstance().get(name, ctx->getStart()->getLine(), ctx->getStart()->getCharPositionInLine());
+    // visit function body
     visit(ctx->compoundStatement());
     blockOrderStack.clear();
     blockOrder = 0;
@@ -237,6 +241,10 @@ antlrcpp::Any DeclarationVisitor::visitAssignmentExpression(CParser::AssignmentE
     } else {
         RetType lType = visit(ctx->unaryExpression()).as<RetType>();
         RetType rType = visit(ctx->assignmentExpression()).as<RetType>();
+
+        if (lType.isTypeDef || rType.isTypeDef)
+            throw InvalidExpression(ctx->getText());
+
         if (!lType.type->typeCheck(rType.type)) {
             if (lType.type->getNodeType() == BaseType::Pointer && rType.type->getNodeType() == BaseType::Pointer) {
                 throw IncompatibleType("different kind of pointer -- " + ctx->getText());
@@ -258,26 +266,10 @@ antlrcpp::Any DeclarationVisitor::visitUnaryExpression(CParser::UnaryExpressionC
         auto uExp = ctx->unaryExpression();
         auto op = ctx->unaryOperator();
         auto rType = visit(uExp).as<RetType>();
-        if (op->Minus()) {      // -x
-            if (rType.type->getNodeType() == BaseType::SInt) {
-                // TODO: capable of arithmetic type
-                return RetType(CTypeBasePtr(rType.type));
-            }
-        } else if (op->Not()) { // !x, 0->1, non-0 ->0
-            if (rType.type->getNodeType() == BaseType::SInt) {
-                // TODO: cast to bool
-                return RetType(CTypeBasePtr(rType.type));
-            }
-        } else if (op->Tilde()) {// ~x, bit-wise not x
-            if (rType.type->getNodeType() == BaseType::SInt) {
-                // TODO: capable of int type
-                return RetType(CTypeBasePtr(rType.type));
-            }
-        } else if (op->Plus()) {// +x, x
-            if (rType.type->getNodeType() == BaseType::SInt) {
-                // TODO: int promotion
-                return RetType(CTypeBasePtr(rType.type));
-            }
+        if (rType.isTypeDef)
+            throw InvalidExpression(ctx->getText());
+        if (op->Minus() || op->Not() || op->Tilde() || op->Plus()) {
+            return RetType(CTypeBasePtr(rType.type));
         } else if (op->Star()) {// *x, get value of a pointer
             if (rType.type->getNodeType() == BaseType::Pointer) {
                 return RetType(CTypeBasePtr(rType.type->getChild()), true);
@@ -299,6 +291,8 @@ antlrcpp::Any DeclarationVisitor::visitPostfixExpression(CParser::PostfixExpress
         auto exps = ctx->expression();
         auto id = ctx->primaryExpression()->identifier();
         auto arrayEntry = SymTab::getInstance().get(getCompoundContext() + id->getText());
+        if (arrayEntry.type.isTypedef())
+            throw InvalidExpression(ctx->getText());
         auto resultType = arrayEntry.type.getTypeTree();
         for (auto exp : exps) {
             if (visit(exp).as<RetType>().type->getNodeType() != BaseType::SInt) { // index should be int
@@ -314,11 +308,13 @@ antlrcpp::Any DeclarationVisitor::visitPostfixExpression(CParser::PostfixExpress
             return RetType(resultType, true);
         else
             return RetType(resultType, false);
-    } else if (!ctx->LeftParen().empty()) { // TODO: continuous postfix f()()[]
+    } else if (!ctx->LeftParen().empty()) {
         auto argExpList = ctx->argumentExpressionList();
-        if (auto id = ctx->primaryExpression()->identifier()) { // TODO: call func by func ptr
+        if (auto id = ctx->primaryExpression()->identifier()) {
             auto funcName = id->getText();
             auto funcEntry = SymTab::getInstance().get(funcName);
+            if (funcEntry.type.isTypedef())
+                throw InvalidExpression(ctx->getText());
             auto typeTree = funcEntry.type.getTypeTree();
             if (typeTree->getNodeType() != BaseType::Function) {
                 throw InvalidFuncCall(funcName + " is not callable");
@@ -346,7 +342,6 @@ antlrcpp::Any DeclarationVisitor::visitPostfixExpression(CParser::PostfixExpress
                 }
             } else if (!funcType->getParamList().empty())
                 throw InvalidFuncCall("unmatched parameter number");
-
             return RetType(funcType->getChild());
         } else
             throw NotImplement("please call function by the name");
@@ -370,6 +365,10 @@ antlrcpp::Any DeclarationVisitor::visitConditionalExpression(CParser::Conditiona
     if (ctx->Question()) {
         RetType lType = visit(ctx->expression()).as<RetType>();
         RetType rType = visit(ctx->conditionalExpression()).as<RetType>();
+        if (lType.isTypeDef)
+            throw InvalidExpression(ctx->expression()->getText());
+        else if (rType.isTypeDef)
+            throw InvalidExpression(ctx->conditionalExpression()->getText());
         if (!lType.type->typeCheck(rType.type)) { // should be the same
             throw IncompatibleType("subexpression of conditional expression is not the same: "
                                    + getTypeStr(lType.type->getNodeType()) + " and "
@@ -384,12 +383,21 @@ antlrcpp::Any DeclarationVisitor::visitConditionalExpression(CParser::Conditiona
 antlrcpp::Any DeclarationVisitor::visitAdditiveExpression(CParser::AdditiveExpressionContext *ctx) {
     auto exps = ctx->multiplicativeExpression();
     auto ops = ctx->additiveOperator();
-    CTypeBasePtr firstType = visit(exps[0]).as<RetType>().type;
+    auto retType = visit(exps[0]).as<RetType>();
+    if (retType.isTypeDef) {
+        throw InvalidExpression(ctx->getText());
+    }
+    CTypeBasePtr firstType = retType.type;
     CTypeBasePtr secondType{};
     if (!ops.empty()) {
         SymTab::getInstance().saveTypeToQueue(firstType);
         for (int i = 0; i < ops.size(); i++) {
-            secondType = visit(exps[i + 1]).as<RetType>().type;
+            retType = visit(exps[i + 1]).as<RetType>();
+            if (retType.isTypeDef) {
+                throw InvalidExpression(ctx->getText());
+            }
+            secondType = retType.type;
+
             firstType = getRetType(firstType, secondType,
                                    dynamic_cast<tree::TerminalNode *>(ops[i]->children.front())->getSymbol()->getType());
             SymTab::getInstance().saveTypeToQueue(secondType);
@@ -405,6 +413,8 @@ antlrcpp::Any DeclarationVisitor::visitCastExpression(CParser::CastExpressionCon
         auto pointers = ctx->pointer();
         auto dst = visit(ctx->typeName()).as<CTypeBasePtr>();
         RetType src = visit(ctx->castExpression()).as<RetType>();
+        if (src.isTypeDef)
+            throw InvalidExpression(ctx->castExpression()->getText());
         for (int i = 0; i < pointers.size(); i++) {
             dst = static_pointer_cast<CTypeNodeBase>(getPointerType(dst));
         }
@@ -416,6 +426,8 @@ antlrcpp::Any DeclarationVisitor::visitReturnStmt(CParser::ReturnStmtContext *ct
     auto returnType = SymTab::getInstance().get(curFunc).type.getTypeTree()->getChild();
     RetType lType = RetType(returnType);
     RetType rType = visit(ctx->expression()).as<RetType>();
+    if (rType.isTypeDef)
+        throw InvalidExpression(ctx->getText());
     if (!lType.type->typeCheck(rType.type)) {
         if (lType.type->getNodeType() == BaseType::Pointer && rType.type->getNodeType() == BaseType::Pointer) {
             throw IncompatibleType("different kind of pointer -- " + ctx->getText());
