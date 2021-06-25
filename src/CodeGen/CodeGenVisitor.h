@@ -279,7 +279,7 @@ private:
         iType("addiu", "sp", "sp", 4);
     }
 
-    inline void label(const string &name) { _code << name + ":"; }
+    inline void label(const string &name) { _code << name + ":\n"; }
 
     inline void beqz(const string &target) {
         popReg("t1");
