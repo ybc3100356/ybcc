@@ -37,4 +37,5 @@ jobs:
       run: | 
         docker pull dockcross/linux-mips:latest
         cd test
-        source ./test.sh
+        chmod +x ./test.sh
+        ./test.sh
